@@ -615,7 +615,7 @@
           <h3 class="stage-name">${figSVG(i)}<span>${esc(a.domain)}</span></h3>
           <p class="stage-domain">${esc(trackSummary(a))}</p>
           <p class="stage-text">${esc(a.text)}</p>
-          <ul class="stage-events" aria-label="Events in ${esc(a.domain)}">${evs.map((e) => `<li><button type="button" data-open="${e.id}" data-dial-ev="${e.id}"><span class="chip-g">${glyphSVG(e)}</span>${esc(e.name)}${e.status === 'tbc' ? ' <em>TBC</em>' : ''}</button></li>`).join('')}</ul>
+          <ul class="stage-events" aria-label="Events in ${esc(a.domain)}">${evs.map((e) => `<li><button type="button" data-open="${e.id}" data-dial-ev="${e.id}"><span class="chip-g" aria-hidden="true"><svg viewBox="-19 -19 38 38">${ICONS[e.icon] || ''}</svg></span>${esc(e.name)}${e.status === 'tbc' ? ' <em>TBC</em>' : ''}</button></li>`).join('')}</ul>
         </div>
       </article>`;
     }).join('');
@@ -626,33 +626,40 @@
   const agesEl = $('#ages');
   let agesStage = -1;
   let agesState = { active: false, stage: 0, frac: 0, after: false };
-  function updateAges(vh) {
-    const r = agesEl.getBoundingClientRect();
+  let agesNodes = null;
+  const agesLast = { fill: '', p: [], counter: '' };
+  function updateAges(vh, r) {
+    if (!agesNodes) agesNodes = { stages: $$('.stage', agesEl), marks: $$('.tl-seg, .tl-end', agesEl), segs: $$('.tl-seg', agesEl), nums: $$('.stage-num', agesEl), counter: $('#agesCounter'), label: $('#agesCounterLabel') };
     const span = Math.max(1, r.height - vh);
     const prog = clamp(-r.top / span, 0, 1);
     const q = prog * D.ages.length;
     const i = Math.min(D.ages.length - 1, Math.floor(q));
     const f = clamp(q - i, 0, 1);
     agesState = { active: r.top < vh * 0.5 && r.bottom > vh * 0.5, stage: i, frac: f, after: r.bottom <= vh * 0.5 };
+    if (r.bottom < -vh || r.top > vh * 2) return; // far away: state only, no DOM work
+    const { stages, marks: tl, segs, nums, counter, label } = agesNodes;
     if (i !== agesStage) {
-      $$('.stage', agesEl).forEach((s, j) => { s.classList.toggle('on', j === i); s.classList.toggle('past', j < i); });
-      $$('.tl-seg, .tl-end', agesEl).forEach((s) => s.classList.toggle('on', Number(s.dataset.i) === i));
+      stages.forEach((s, j) => { s.classList.toggle('on', j === i); s.classList.toggle('past', j < i); });
+      tl.forEach((s) => s.classList.toggle('on', Number(s.dataset.i) === i));
       if (agesStage >= 0 && agesState.active) Sound.tick(700 + i * 120, 0.06, 0.05);
       agesStage = i;
+      agesLast.fill = '';
     }
-    const num = $$('.stage-num', agesEl)[i];
-    if (num) num.style.setProperty('--fill', `${(f * 100).toFixed(1)}%`);
-    $$('.tl-seg', agesEl).forEach((s, j) => s.style.setProperty('--p', j < i ? 1 : j === i ? f : 0));
-    const counter = $('#agesCounter');
-    const label = $('#agesCounterLabel');
+    const fill = `${(f * 100).toFixed(1)}%`;
+    if (nums[i] && fill !== agesLast.fill) { nums[i].style.setProperty('--fill', fill); agesLast.fill = fill; }
+    segs.forEach((s, j) => {
+      const v = (j < i ? 1 : j === i ? f : 0).toFixed(3);
+      if (agesLast.p[j] !== v) { s.style.setProperty('--p', v); agesLast.p[j] = v; }
+    });
+    let txt;
     if (i < D.ages.length - 1) {
-      const left = Math.max(0, MAHAYUGA - (cumYears[i] + f * D.ages[i].years));
-      counter.textContent = inr.format(Math.round(left));
+      txt = inr.format(Math.round(Math.max(0, MAHAYUGA - (cumYears[i] + f * D.ages[i].years))));
       if (label.dataset.m !== 'y') { label.dataset.m = 'y'; label.textContent = 'Years left in this Mahayuga'; }
     } else {
-      counter.textContent = f < 0.12 ? '0' : `${site.edition} CE`;
+      txt = f < 0.12 ? '0' : `${site.edition} CE`;
       if (label.dataset.m !== 'n') { label.dataset.m = 'n'; label.textContent = 'Mahayuga complete · the count restarts'; }
     }
+    if (txt !== agesLast.counter) { counter.textContent = txt; agesLast.counter = txt; }
   }
 
   /* ------------------------------------------------------------------ *
@@ -991,43 +998,6 @@
   }
   function renderFaq() {
     $('#faqList').innerHTML = D.faq.map(([q, a]) => `<details><summary>${esc(q)}<span class="pm" aria-hidden="true"></span></summary><p>${esc(a)}</p></details>`).join('');
-  }
-
-  /* ------------------------------------------------------------------ *
-   * The message — the fest in one paragraph, lit word by word           *
-   * ------------------------------------------------------------------ */
-  const msgEl = $('#msgText');
-  let msgWords = [], msgLit = -1, signed = false;
-  function renderMessage() {
-    const comp = D.ages.filter((a) => a.years);
-    const names = comp.map((a) => `*${a.domain}*`);
-    const list = `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
-    const place = site.venue.split(',').pop().trim();
-    const text = `Every age was counted down: ${comp.map((a) => `*${a.count}*`).join(', ')}. Yugantra is where that count ends and the next one begins. *${D.events.length} events* across ${list}, over *${String(WORDS[days] || days).toLowerCase()} days* in ${place}. Build for ${longest ? `${longest.hours} hours` : 'a day'} straight. Pitch to investors, live. Take the stage. Capture the flag. Then show us what the next age runs on.`;
-    let on = false;
-    msgEl.innerHTML = text.split(/\s+/).map((raw) => {
-      let w = raw, start = on;
-      if (w.startsWith('*')) { start = true; w = w.slice(1); }
-      const close = w.indexOf('*');
-      let inner = w, tail = '';
-      if (close >= 0) { inner = w.slice(0, close); tail = w.slice(close + 1); on = false; } else on = start;
-      return `<span class="w">${start ? `<b>${esc(inner)}</b>` : esc(inner)}${esc(tail)}</span>`;
-    }).join(' ');
-    msgWords = $$('.w', msgEl);
-    if (reduced) { msgWords.forEach((w) => w.classList.add('lit')); $('#sign').classList.add('signed'); signed = true; }
-  }
-  function updateMessage() {
-    if (!msgWords.length || reduced) return;
-    const r = msgEl.getBoundingClientRect();
-    if (r.bottom < -H || r.top > H * 2) return;
-    const p = clamp((H * 0.85 - r.top) / (H * 0.45 + r.height * 0.5), 0, 1);
-    const n = Math.round(p * msgWords.length);
-    if (n !== msgLit) {
-      const lo = Math.max(0, Math.min(n, msgLit)), hi = Math.max(n, msgLit);
-      for (let i = lo; i < hi; i++) msgWords[i].classList.toggle('lit', i < n);
-      msgLit = n;
-    }
-    if (!signed && p >= 1) { signed = true; $('#sign').classList.add('signed'); Sound.chime(); }
   }
 
   /* ------------------------------------------------------------------ *
@@ -1425,8 +1395,8 @@
   function updateMarks() {
     if (reduced) return;
     for (const m of marks) {
-      const r = m.host.getBoundingClientRect();
-      if (r.bottom < 0 || r.top > H) continue;
+      const r = m.rect;
+      if (!r || r.bottom < 0 || r.top > H) continue;
       const t = (r.top + r.height / 2 - H / 2) / (H + r.height);
       m.el.style.transform = `translate3d(${(t * -180).toFixed(1)}px, ${(t * 240).toFixed(1)}px, 0)`;
     }
@@ -1491,13 +1461,50 @@
   if (dial) root.classList.add('webgl');
 
   let W = innerWidth, H = innerHeight;
-  let dpr = Math.min(window.devicePixelRatio || 1, fine ? 1.75 : 1.5);
-  const perf = { acc: 0, n: 0 };
+  /* Resolution. The dial renders at the screen's native pixel density (up to 3×).
+     `quality` only drops if the GPU can't hold ~33 fps on quiet frames, never
+     because of scrolling, and climbs back as soon as it can. */
+  const nativeDpr = () => Math.min(window.devicePixelRatio || 1, 3);
+  let quality = 1, dpr = nativeDpr();
+  const perf = { acc: 0, n: 0, ceiling: 1, lastUp: -1e9 };
+  const canvasH = () => canvas.clientHeight || H; // 100lvh: stable while mobile toolbars slide
+  let needResize = true;
+  function setQuality(q) {
+    quality = q;
+    dpr = nativeDpr() * quality;
+    needResize = true; // applied inside the frame, right before drawing, so the canvas never flashes
+  }
+  /** Texture edge that gives at least one texel per device pixel at the dial's largest (hero) size. */
+  function neededTexture() {
+    const r = W < H * 0.9 ? Math.min(W * 0.6, H * 0.3) : H * 0.62;
+    const px = (2 * r * nativeDpr()) / 0.985;
+    const cap = Math.min(dial ? dial.maxTexture : 2048, (navigator.deviceMemory || 8) >= 4 ? 4096 : 2048);
+    let s = 1024;
+    while (s < px && s < cap) s *= 2;
+    return s;
+  }
+  /** The footer wordmark always spans the page, whatever font actually loaded. */
+  function fitBigmark() {
+    const base = $('.bm-base', bigmark);
+    if (!base) return;
+    bigmark.style.fontSize = '';
+    const range = document.createRange();
+    range.selectNodeContents(base);
+    const w = range.getBoundingClientRect().width, avail = bigmark.clientWidth * 0.97;
+    if (w > 0) bigmark.style.fontSize = `${((parseFloat(getComputedStyle(bigmark).fontSize) * avail) / w).toFixed(2)}px`;
+  }
+  let lastW = -1, texTimer = 0;
   function resize() {
-    W = innerWidth; H = innerHeight;
-    if (dial) dial.resize(W, H, dpr);
+    const widthChanged = innerWidth !== lastW;
+    lastW = W = innerWidth; H = innerHeight;
+    setQuality(quality);
     syncFuture();
-    buildMarquee();
+    if (widthChanged) { buildMarquee(); fitBigmark(); }
+    if (dial && texReady && neededTexture() > dial.textureSize) {
+      clearTimeout(texTimer);
+      texTimer = setTimeout(() => { try { dial.paint(neededTexture(), dialData()); } catch (_) { /* keep current */ } }, 500);
+    }
+    return widthChanged;
   }
   const fontsReady = Promise.race([
     Promise.all([
@@ -1512,33 +1519,36 @@
   let texReady = false;
   if (dial) {
     fontsReady.then(() => {
-      const big = Math.max(W, H) * dpr > 1500;
-      try { dial.paint(big ? 2048 : 1024, dialData()); texReady = true; } catch (err) { console.warn('[yugantra] texture paint failed:', err); }
+      try { dial.paint(neededTexture(), dialData()); texReady = true; } catch (err) { console.warn('[yugantra] texture paint failed:', err); }
     });
   }
-  fontsReady.then(() => { syncFuture(); buildMarquee(); });
+  fontsReady.then(() => { syncFuture(); buildMarquee(); fitBigmark(); });
 
   const EMERALD = [0.086, 0.188, 0.169], BURGUNDY = [0.224, 0.02, 0.09], BRONZE = [0.373, 0.318, 0.239];
   const AGE_TINT = [EMERALD, [0.2, 0.19, 0.15], [0.12, 0.2, 0.16], BURGUNDY, BRONZE];
-  const SECTIONS = ['top', 'message', 'origin', 'ages', 'events', 'spotlight', 'passes', 'schedule', 'stage', 'partners', 'faq', 'reach', 'contact'].map((id) => ({ id, el: document.getElementById(id), cover: 0 }));
+  const SECTIONS = ['top', 'origin', 'ages', 'events', 'spotlight', 'passes', 'schedule', 'stage', 'partners', 'faq', 'reach', 'contact'].map((id) => ({ id, el: document.getElementById(id), cover: 0 }));
   const dialSlot = $('#dialSlot');
   function targetFor(id, w, h) {
     const portrait = w < h * 0.9;
     switch (id) {
       case 'top': return portrait ? { x: w * 0.5, y: h * 0.27, r: Math.min(w * 0.6, h * 0.3), o: 1, t: EMERALD } : { x: w * 0.71, y: h * 0.5, r: h * 0.62, o: 1, t: EMERALD };
-      case 'message': return portrait ? { x: w * 0.5, y: h * 0.5, r: h * 0.5, o: 0.1, t: EMERALD } : { x: w * 0.82, y: h * 0.52, r: h * 0.66, o: 0.14, t: EMERALD };
       case 'spotlight': return portrait ? { x: w * 0.5, y: h * 0.1, r: w * 0.8, o: 0.08, t: EMERALD } : { x: w * 0.02, y: h * 0.5, r: h * 0.62, o: 0.16, t: EMERALD };
       case 'passes': return portrait ? { x: w * 0.5, y: h * 0.9, r: w * 0.8, o: 0.08, t: BRONZE } : { x: w * 0.96, y: h * 0.72, r: h * 0.56, o: 0.14, t: BRONZE };
       case 'reach': return { x: w * 0.5, y: h * 1.02, r: Math.min(w, h) * 0.55, o: 0.3, t: BRONZE };
       case 'origin': return portrait ? { x: w * 0.5, y: h * 0.5, r: h * 0.55, o: 0.12, t: EMERALD } : { x: w * 0.9, y: h * 0.5, r: h * 0.62, o: 0.2, t: EMERALD };
       case 'ages': {
         const tint = AGE_TINT[agesState.stage] || EMERALD;
-        if (portrait) return { x: w * 0.5, y: h * 0.31, r: Math.min(w * 0.42, h * 0.18), o: 1, t: tint };
-        const r = Math.min(h * 0.36, w * 0.24);
-        return { x: w - r * 1.05 - w * 0.03, y: h * 0.5, r, o: 1, t: tint };
+        if (portrait) {
+          // centre the dial in the free space between the heading and the stage text
+          const g = M.agesGap;
+          if (g && g[1] - g[0] > 140) return { x: w * 0.5, y: (g[0] + g[1]) / 2, r: Math.min(w * 0.44, (g[1] - g[0]) / 2 - 8), o: 1, t: tint };
+          return { x: w * 0.5, y: h * 0.31, r: Math.min(w * 0.42, h * 0.18), o: 1, t: tint };
+        }
+        const r = Math.min(h * 0.34, w * 0.23);
+        return { x: w - r * 1.05 - w * 0.03, y: h * 0.53, r, o: 1, t: tint };
       }
       case 'events': {
-        const s = dialSlot.getBoundingClientRect();
+        const s = M.slot || dialSlot.getBoundingClientRect();
         if (s.width > 40) return { x: s.left + s.width / 2, y: s.top + s.height / 2, r: (s.width / 2) * 0.97, o: 1, t: EMERALD };
         return { x: w * 0.5, y: h * 0.5, r: Math.max(w, h) * 0.85, o: 0.06, t: EMERALD };
       }
@@ -1685,8 +1695,9 @@
     try { if (window.DeviceOrientationEvent && DeviceOrientationEvent.requestPermission) DeviceOrientationEvent.requestPermission().catch(() => {}); } catch (_) { /* ignore */ }
   }, { once: true });
 
+  const lensLast = { vars: '', size: -1, ring: '' };
   function updateLens(dt) {
-    const hr = hero.getBoundingClientRect();
+    const hr = M.hero;
     const visible = hr.bottom > 120 && ready && explode < 0.05;
     const base = fine ? clamp(W * 0.1, 104, 172) : clamp(W * 0.19, 64, 96);
     let target = 0;
@@ -1694,7 +1705,7 @@
       if (fine && pointer.inHero) { lens.tx = pointer.x; lens.ty = pointer.y; target = base; }
       else if (!fine && !reduced) {
         if (clock - pointer.lastTouch > 2.6) {
-          const wr = wm.getBoundingClientRect();
+          const wr = M.wm || wm.getBoundingClientRect();
           lens.tx = wr.left + wr.width * (0.5 + 0.4 * Math.sin(clock * 0.42) + (tilt.on ? tilt.x * 0.3 : 0));
           lens.ty = wr.top + wr.height * (0.55 + 0.35 * Math.sin(clock * 0.83) + (tilt.on ? tilt.y * 0.4 : 0));
         }
@@ -1706,14 +1717,23 @@
     lens.y = damp(lens.y, lens.ty, 16, dt);
     lens.r = damp(lens.r, target, target ? 9 : 12, dt);
     if (lens.r < 0.4 || hr.bottom < 0) lens.r = 0;
-    const mr = heroMain.getBoundingClientRect();
-    heroMain.style.setProperty('--lx', `${(lens.x - mr.left).toFixed(1)}px`);
-    heroMain.style.setProperty('--ly', `${(lens.y - mr.top).toFixed(1)}px`);
-    heroMain.style.setProperty('--lr', `${lens.r.toFixed(1)}px`);
+    if (lens.r === 0 && lensLast.vars === 'off') return; // nothing to move
+    const mr = M.heroMain;
+    const vars = lens.r === 0 ? 'off' : `${(lens.x - mr.left).toFixed(1)}|${(lens.y - mr.top).toFixed(1)}|${lens.r.toFixed(1)}`;
+    if (vars !== lensLast.vars) {
+      lensLast.vars = vars;
+      heroMain.style.setProperty('--lx', `${(lens.x - mr.left).toFixed(1)}px`);
+      heroMain.style.setProperty('--ly', `${(lens.y - mr.top).toFixed(1)}px`);
+      heroMain.style.setProperty('--lr', `${lens.r.toFixed(1)}px`);
+    }
     const size = (lens.r / 86) * 200;
     if (Math.abs(size - lens.size) > 0.25) { lens.size = size; ring.style.width = ring.style.height = `${size.toFixed(1)}px`; }
-    ring.style.transform = `translate3d(${(lens.x - size / 2).toFixed(1)}px, ${(lens.y - size / 2).toFixed(1)}px, 0)`;
-    ring.style.opacity = clamp(lens.r / 40, 0, 1).toFixed(3);
+    const rk = `${(lens.x - size / 2).toFixed(1)}|${(lens.y - size / 2).toFixed(1)}|${clamp(lens.r / 40, 0, 1).toFixed(2)}`;
+    if (rk !== lensLast.ring) {
+      lensLast.ring = rk;
+      ring.style.transform = `translate3d(${(lens.x - size / 2).toFixed(1)}px, ${(lens.y - size / 2).toFixed(1)}px, 0)`;
+      ring.style.opacity = clamp(lens.r / 40, 0, 1).toFixed(2);
+    }
   }
 
   /* custom cursor: a gold ring that shows the track of whatever you point at */
@@ -1742,12 +1762,15 @@
 
   /* footer spotlight */
   const bigmark = $('#bigmark');
-  function updateSpot() {
-    const r = bigmark.getBoundingClientRect();
+  let spotLast = '';
+  function updateSpot(r) {
     if (r.bottom < 0 || r.top > H) return;
     let mx, my;
     if (fine && pointer.seen && pointer.y > r.top - 200) { mx = ((pointer.x - r.left) / r.width) * 100; my = ((pointer.y - r.top) / r.height) * 100; }
     else { mx = 50 + 42 * Math.sin(clock * 0.45) + (tilt.on ? tilt.x * 30 : 0); my = 50 + 20 * Math.sin(clock * 0.7); }
+    const key = `${mx.toFixed(1)}|${my.toFixed(1)}`;
+    if (key === spotLast) return;
+    spotLast = key;
     bigmark.style.setProperty('--mx', `${mx.toFixed(1)}%`);
     bigmark.style.setProperty('--my', `${my.toFixed(1)}%`);
   }
@@ -1825,6 +1848,27 @@
    * Main loop                                                           *
    * ------------------------------------------------------------------ */
   const veil = $('#veil');
+  /* Every layout read for a frame happens here, before any write, so the page
+     never forces a second layout mid-frame. */
+  const M = { hero: null, heroMain: null, slot: null, ages: null, big: null, wm: null, docH: 1, agesGap: null };
+  const agesTopEl = $('.ages-top', agesEl);
+  function measure() {
+    M.docH = root.scrollHeight - H;
+    for (const s of SECTIONS) s.rect = s.el ? s.el.getBoundingClientRect() : null;
+    for (const m of marks) m.rect = m.host.getBoundingClientRect();
+    M.hero = hero.getBoundingClientRect();
+    M.heroMain = heroMain.getBoundingClientRect();
+    M.slot = dialSlot.getBoundingClientRect();
+    M.ages = agesEl.getBoundingClientRect();
+    M.big = bigmark.getBoundingClientRect();
+    M.wm = !fine && M.hero.bottom > 0 ? wm.getBoundingClientRect() : null;
+    M.agesGap = null;
+    if (W < H * 0.9 && M.ages.bottom > 0 && M.ages.top < H && agesNodes) {
+      const st = agesNodes.stages[Math.max(0, agesStage)];
+      if (st) M.agesGap = [agesTopEl.getBoundingClientRect().bottom, st.getBoundingClientRect().top - 12];
+    }
+  }
+  const wlast = { prog: '', veil: '', sheen: '' };
   let last = performance.now();
   let lastY = scrollY, vel = 0, dir = 1, lastCd = 0;
   function loop(now) {
@@ -1833,6 +1877,7 @@
     last = now;
     clock += dt;
     const y = scrollY;
+    measure();
 
     const dy = y - lastY;
     vel = damp(vel, dy / dt, 8, dt);
@@ -1843,18 +1888,19 @@
       else if (dy < -3 || y < 480) nav.classList.remove('hide');
     }
     lastY = y;
-    const docH = document.documentElement.scrollHeight - H;
-    const prog = docH > 0 ? clamp(y / docH, 0, 1).toFixed(4) : 0;
-    navProgress.style.transform = `scaleX(${prog})`;
-    railFill.style.transform = `scaleY(${prog})`;
+    const prog = M.docH > 0 ? clamp(y / M.docH, 0, 1).toFixed(4) : '0';
+    if (prog !== wlast.prog) {
+      wlast.prog = prog;
+      navProgress.style.transform = `scaleX(${prog})`;
+      railFill.style.transform = `scaleY(${prog})`;
+    }
 
     const wall = Date.now();
     if (wall - lastCd > 100) { lastCd = wall; updateCountdown(wall); updateGhatiText(ghatiFraction(wall)); }
 
-    updateAges(H);
+    updateAges(H, M.ages);
     tickReadouts(dt * 1000);
-    updateSpot();
-    updateMessage();
+    updateSpot(M.big);
     updateClock();
     updateMarks();
 
@@ -1865,14 +1911,17 @@
       mq.a.style.transform = `translate3d(${-mq.xa.toFixed(1)}px,0,0)`;
       mq.b.style.transform = `translate3d(${-mq.xb.toFixed(1)}px,0,0)`;
     }
-    wm.style.setProperty('--sheen', clamp(pointer.x / W, 0, 1).toFixed(3));
+    if (M.hero.bottom > 0) {
+      const sh = clamp(pointer.x / W, 0, 1).toFixed(3);
+      if (sh !== wlast.sheen) { wlast.sheen = sh; wm.style.setProperty('--sheen', sh); }
+    }
 
     // section coverage drives the dial's position and the night veil
     let sw = 0; const tg = { x: 0, y: 0, r: 0, o: 0, t: [0, 0, 0] };
     for (const s of SECTIONS) {
       s.cover = 0;
       if (!s.el) continue;
-      const r = s.el.getBoundingClientRect();
+      const r = s.rect;
       const cv = Math.max(0, Math.min(r.bottom, H) - Math.max(r.top, 0)) / H;
       s.cover = cv;
       if (cv <= 0) continue;
@@ -1882,9 +1931,10 @@
       sw += cv;
     }
     const cover = Object.fromEntries(SECTIONS.map((s) => [s.id, s.cover]));
-    veil.style.opacity = (clamp(cover.stage || 0, 0, 1) * 0.9).toFixed(3);
+    const vo = (clamp(cover.stage || 0, 0, 1) * 0.9).toFixed(3);
+    if (vo !== wlast.veil) { wlast.veil = vo; veil.style.opacity = vo; }
 
-    const slotR = dialSlot.getBoundingClientRect();
+    const slotR = M.slot;
     pointer.overSlot = slotR.width > 40 && pointer.x > slotR.left && pointer.x < slotR.right && pointer.y > slotR.top && pointer.y < slotR.bottom;
 
     if (dial) {
@@ -1900,7 +1950,7 @@
       first = false;
 
       // exploded view while the hero hands over to the next section
-      const s = y / Math.max(1, hero.offsetHeight);
+      const s = y / Math.max(1, M.hero.height);
       const eTarget = reduced || bootV < 1 ? 0 : Math.pow(Math.sin(clamp(s / 1.25, 0, 1) * Math.PI), 1.3);
       explode = damp(explode, eTarget, 8, dt);
 
@@ -1948,6 +1998,7 @@
       if (ms !== lastMarkerSector) { if (lastMarkerSector >= 0 && cur.o > 0.5 && bootV >= 1) Sound.tick(2100, 0.025, 0.03); lastMarkerSector = ms; }
 
       updateLens(dt);
+      if (needResize) { dial.resize(W, canvasH(), dpr); needResize = false; }
       dial.render({
         dpr, time: clock, scroll: y,
         cx: cur.x, cy: cur.y, radius: cur.r * introScale, opacity: cur.o,
@@ -1959,12 +2010,18 @@
         boot: bootV, explode, tilt: [0.95 * explode, -0.42 * explode]
       });
 
-      if (!document.hidden && dtRaw < 0.1) {
-        perf.acc += dtRaw; perf.n++;
-        if (perf.n >= 45) {
-          const avg = perf.acc / perf.n;
-          perf.acc = 0; perf.n = 0;
-          if (avg > 0.026 && dpr > 0.8) { dpr = Math.max(0.75, dpr * 0.8); dial.resize(W, H, dpr); }
+      const quiet = ready && !document.hidden && dtRaw < 0.25 && Math.abs(vel) < 20 && explode < 0.01;
+      if (quiet) { perf.acc += dtRaw; perf.n++; } else { perf.acc = 0; perf.n = 0; }
+      if (perf.n >= 90) {
+        const avg = perf.acc / perf.n;
+        perf.acc = 0; perf.n = 0;
+        if (avg > 0.03 && quality > 0.5) {
+          const q = Math.max(0.5, quality - 0.25);
+          if (clock - perf.lastUp < 6) perf.ceiling = q; // the step up didn't hold: stay here
+          setQuality(q);
+        } else if (avg < 0.019 && quality < perf.ceiling) {
+          perf.lastUp = clock;
+          setQuality(Math.min(perf.ceiling, quality + 0.25));
         }
       }
     } else {
@@ -1981,7 +2038,6 @@
   renderAges();
   renderEvents();
   renderSchedule();
-  renderMessage();
   renderSpotlight();
   renderPasses();
   renderStage();
@@ -1993,7 +2049,7 @@
   initReveal();
   updateCountdown(Date.now());
   let rT;
-  addEventListener('resize', () => { clearTimeout(rT); rT = setTimeout(() => { resize(); renderRibbon(); }, 120); });
+  addEventListener('resize', () => { clearTimeout(rT); rT = setTimeout(() => { if (resize()) renderRibbon(); }, 120); });
   runIntro();
   requestAnimationFrame(loop);
 })();

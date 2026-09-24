@@ -47,9 +47,8 @@ Nothing on the page is decoration. Every figure, tick, dot, ring, sound and moti
 - **Culture & Play:** Chaturanga, shown as a knight's tour.
 - **Cyber Security:** Katapayadi, the Kerala number code, 683 CE.
 
-**Sections, in order:** hero (the dial) → the message → origins → tracks as ages → events → the flagship → passes → schedule → the Stage → partners → FAQ → contact → footer. A rail on the right edge (wide screens) shows where you are.
+**Sections, in order:** hero (the dial) → origins → tracks as ages → events → the flagship → passes → schedule → the Stage → partners → FAQ → contact → footer. A rail on the right edge (wide screens) shows where you are.
 
-- **The message.** One paragraph built from the data: the event count, the track names, the number of days. It lights word by word as you scroll, then the യുഗം signature draws itself.
 - **The flagship.** The 24-Hour Hackathon on a 24-hour clock that starts at 13:30. Nights are shaded (18:00–06:00, the same sunrise convention as the ghatis). Point at the ring to read any hour.
   - Food is parsed from the event's `food` line. There are no invented meal times.
   - The goodies line (ID card, certificate, stickers) is rendered as tiltable cards, marked illustrative.
@@ -121,10 +120,15 @@ The site is a static folder:
 
 ## Engineering notes
 
+- **Image quality.**
+  - The dial renders at the screen's native pixel density (up to 3×) on WebGL2.
+  - Ring artwork is painted at the size the hero dial needs: 4096² on high-density or large screens, 2048² otherwise, 1024² minimum. That keeps at least one texel per device pixel.
+  - Textures are sampled with explicit gradients (`textureGrad`), so there are no seams where the rotating bands meet. Type stays sharp in motion and in the 3D view, with 16× anisotropic filtering.
+  - Scrolling never lowers the resolution. Only quiet frames (not scrolling, not in the 3D view) are timed. The dial steps down if the GPU can't hold about 33 fps and steps back up when it can.
+  - The canvas is sized to the large viewport (`100lvh`), so mobile toolbars sliding in and out don't resize or blur it.
 - **Performance.**
-  - One full-screen shader, with ring artwork painted once into mipmapped textures.
+  - One full-screen shader. Every layout read for a frame happens first, and style writes only happen when a value changes, so scrolling doesn't force extra layouts.
   - The exploded 3D path only runs while it's visible.
-  - Resolution drops automatically when frames are slow, and textures are 1024² on small screens.
 - **Accessibility.**
   - Skip link, visible focus, and a real `<dialog>` that closes with Escape.
   - Keyboard tabs in the schedule, plus hidden text behind the rolling digits for screen readers.

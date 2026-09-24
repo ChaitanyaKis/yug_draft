@@ -389,11 +389,18 @@
       if (r < 0.86) return uRotA.w;
       return uRotB.x;
     }
-    vec3 dialTex(sampler2D tex, vec2 p){
+    // pxs: the size of one device pixel in dial units at this point. Gradients are
+    // given explicitly so mip selection never sees the jump between rotating bands
+    // (no seams), and are tightened slightly (SHARP) so type stays crisp in motion.
+    const float SHARP = 0.8;
+    vec3 dialTex(sampler2D tex, vec2 p, float pxs){
       float r = length(p);
       if (r > 1.0) return vec3(0.0);
-      vec2 q = rot(p, -bandAngle(r));
-      return texture2D(tex, 0.5 + q * 0.4925).rgb;
+      float a = -bandAngle(r);
+      vec2 q = rot(p, a);
+      vec2 gx = rot(vec2(pxs, 0.0), a) * (0.4925 * SHARP);
+      vec2 gy = rot(vec2(0.0, pxs), a) * (0.4925 * SHARP);
+      return TEXGRAD(tex, 0.5 + q * 0.4925, gx, gy).rgb;
     }
     // 1 inside the focused sectors (an event or a whole track), in the tracks, events and prize bands
     float focusMask(vec2 p){
@@ -471,13 +478,13 @@
     }
 
     // Everything the ancient dial shows at point q, which lies in band b.
-    vec3 shadeDial(vec2 q, float b, float w, float aa){
+    vec3 shadeDial(vec2 q, float b, float w, float aa, float pxs){
       float th = atan(q.y, q.x);
       float c = abs(cos(th - uLight));
       float sheen = pow(c, 3.0);
       float glint = pow(c, 42.0);
       vec3 metal = mix(GOLD * 0.82, GOLDHI, sheen * 0.65 + glint * 0.5);
-      vec3 m = dialTex(uTexA, q) * uHasTex;
+      vec3 m = dialTex(uTexA, q, pxs) * uHasTex;
       float hv = focusMask(q) * uHasTex;
       vec3 col = metal * (m.r * (0.5 + 0.55 * sheen + 0.9 * glint) + m.g * (0.72 + 0.5 * sheen + 0.6 * glint));
       col += EMERALD * m.b * (0.8 + 0.6 * sheen);
@@ -511,7 +518,7 @@
       col += GOLD * pad * (0.035 + 0.05 * glow);
 
       if (uExplode < 0.002) {
-        col += shadeDial(p, bandIndex(r), w, aa) * uOpacity;
+        col += shadeDial(p, bandIndex(r), w, aa, 1.0 / uRadius) * uOpacity;
       } else {
         // exploded view: every band is its own plate, tilted and pulled apart in depth
         vec3 ro = rx(ry(vec3(0.0, 0.0, -2.4), -uTilt.y), -uTilt.x);
@@ -525,7 +532,7 @@
           vec2 q = ro.xy + rd.xy * t;
           float rq = length(q);
           if (rq < bandLo(b) || rq >= bandHi(b)) continue;
-          acc += shadeDial(q, b, w, aa) * (1.05 - 0.07 * b * uExplode);
+          acc += shadeDial(q, b, w * t, aa * t, t / uRadius) * (1.05 - 0.07 * b * uExplode);
         }
         col += acc * uOpacity;
       }
@@ -542,7 +549,7 @@
           vec2 pm = (pxm - uCenter) / uRadius;
           float rm = length(pm);
           float thm = atan(pm.y, pm.x);
-          vec3 fm = dialTex(uTexF, pm) * uHasTex;
+          vec3 fm = dialTex(uTexF, pm, (0.7 + 0.22 * t * t) / uRadius) * uHasTex;
           float sweep = pow(fract(thm / TAU + 0.5 - uTime * 0.06), 7.0);
           vec3 fc = BG * 0.7 + EMERALD * (0.5 + 0.35 * exp(-rm * rm * 2.0));
           vec3 fd = GOLDHI * fm.r * (0.85 + 0.5 * sweep) + WARM * fm.g * 0.95 + SAGE * fm.b * (0.3 + 0.55 * sweep);
@@ -578,10 +585,24 @@
 
   function create(canvas) {
     const opts = { antialias: false, alpha: false, depth: false, stencil: false, premultipliedAlpha: false, powerPreference: 'high-performance' };
-    const gl = canvas.getContext('webgl', opts) || canvas.getContext('experimental-webgl', opts);
+    let gl = canvas.getContext('webgl2', opts);
+    const gl2 = !!gl;
+    if (!gl) gl = canvas.getContext('webgl', opts) || canvas.getContext('experimental-webgl', opts);
     if (!gl) return null;
+    const lodExt = !gl2 && gl.getExtension('EXT_shader_texture_lod');
+    const maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE) || 2048;
+    let vertSrc = VERT, fragSrc = FRAG;
+    if (gl2) {
+      vertSrc = '#version 300 es\n' + VERT.replace(/\battribute\b/g, 'in');
+      fragSrc = '#version 300 es\n#define TEXGRAD(s, uv, gx, gy) textureGrad(s, uv, gx, gy)\nout highp vec4 fragColor;\n' +
+        FRAG.replace(/\btexture2D\(/g, 'texture(').replace(/\bgl_FragColor\b/g, 'fragColor');
+    } else if (lodExt) {
+      fragSrc = '#extension GL_EXT_shader_texture_lod : enable\n#define TEXGRAD(s, uv, gx, gy) texture2DGradEXT(s, uv, gx, gy)\n' + FRAG;
+    } else {
+      fragSrc = '#define TEXGRAD(s, uv, gx, gy) texture2D(s, uv)\n' + FRAG;
+    }
 
-    let prog, uni = {}, texA, texF, hasTex = 0, sources = null;
+    let prog, uni = {}, texA, texF, hasTex = 0, recipe = null, texSize = 0;
     const NAMES = ['uRes', 'uDpr', 'uTime', 'uRadius', 'uOpacity', 'uShapeA', 'uShapeB', 'uShapeMix', 'uLight', 'uHand', 'uLensAmt', 'uGrain', 'uHasTex', 'uScroll', 'uFocusA', 'uFocusB', 'uFocusAmt', 'uN', 'uBoot', 'uExplode', 'uTilt', 'uCenter', 'uRotA', 'uRotB', 'uLens', 'uTint', 'uTexA', 'uTexF'];
 
     function makeTex() {
@@ -600,12 +621,12 @@
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       const aniso = gl.getExtension('EXT_texture_filter_anisotropic') || gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic');
-      if (aniso) gl.texParameterf(gl.TEXTURE_2D, aniso.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(4, gl.getParameter(aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
+      if (aniso) gl.texParameterf(gl.TEXTURE_2D, aniso.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(16, gl.getParameter(aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
     }
     function init() {
       prog = gl.createProgram();
-      gl.attachShader(prog, compile(gl, gl.VERTEX_SHADER, VERT));
-      gl.attachShader(prog, compile(gl, gl.FRAGMENT_SHADER, FRAG));
+      gl.attachShader(prog, compile(gl, gl.VERTEX_SHADER, vertSrc));
+      gl.attachShader(prog, compile(gl, gl.FRAGMENT_SHADER, fragSrc));
       gl.bindAttribLocation(prog, 0, 'aPos');
       gl.linkProgram(prog);
       if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error('Program link failed: ' + gl.getProgramInfoLog(prog));
@@ -620,7 +641,14 @@
       texF = makeTex();
       gl.uniform1i(uni.uTexA, 0);
       gl.uniform1i(uni.uTexF, 1);
-      if (sources) { upload(texA, sources[0]); upload(texF, sources[1]); hasTex = 1; }
+      if (recipe) paintNow(recipe.size, recipe.data);
+    }
+
+    function paintNow(S, data) {
+      const a = drawAncient(S, data), f = drawFuture(S, data);
+      upload(texA, a); upload(texF, f);
+      a.width = a.height = f.width = f.height = 0; // release the canvas backing stores
+      hasTex = 1; texSize = S;
     }
 
     init();
@@ -632,10 +660,14 @@
     return {
       /** Paint both dial textures from fest data; call after webfonts are ready. */
       paint(size, data) {
-        const S = size || 2048;
-        sources = [drawAncient(S, data), drawFuture(S, data)];
-        if (!lost) { upload(texA, sources[0]); upload(texF, sources[1]); hasTex = 1; }
+        const S = Math.min(size || 2048, maxTex);
+        recipe = { size: S, data };
+        if (!lost) paintNow(S, data);
+        return S;
       },
+      get maxTexture() { return maxTex; },
+      get textureSize() { return texSize; },
+      get webgl2() { return gl2; },
       resize(w, h, dpr) {
         const W = Math.max(1, Math.round(w * dpr)), H = Math.max(1, Math.round(h * dpr));
         if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }

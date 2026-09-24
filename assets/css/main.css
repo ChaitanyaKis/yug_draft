@@ -85,7 +85,7 @@ p { margin: 0; }
 
 .wrap { width: 100%; max-width: 1440px; margin-inline: auto; padding-inline: var(--gutter); }
 
-#dial { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; }
+#dial { position: fixed; left: 0; top: 0; width: 100%; height: 100vh; height: 100lvh; display: block; z-index: 0; }
 html:not(.webgl) #dial { display: none; }
 html:not(.webgl) body { background: radial-gradient(90vmax 70vmax at 70% 30%, var(--bg-2), var(--bg) 70%) fixed; }
 
@@ -986,8 +986,9 @@ html.dlg-open .cursor, .cursor.gone { opacity: 0; }
 
 /* events: the dial docks beside the grid */
 .ev-layout { display: grid; grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); gap: 28px; align-items: start; }
+.ev-aside { align-self: stretch; }
 .ev-sticky { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--nav-h) + 16px); display: grid; gap: 14px; }
-.dial-slot { position: relative; width: 100%; aspect-ratio: 1; max-width: 100%; border-radius: 50%; }
+.dial-slot { position: relative; width: 100%; aspect-ratio: 1; max-width: max(220px, min(100%, calc(100svh - var(--nav-h) - 430px))); margin-inline: auto; border-radius: 50%; }
 .slot-hint { position: absolute; left: 50%; bottom: -4px; transform: translateX(-50%); font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-2); white-space: nowrap; opacity: 0.7; }
 .slot-cap { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line-soft); background: rgba(3, 17, 13, 0.7); font-size: 14px; line-height: 1.45; color: var(--text-2); }
 .slot-cap .fig { margin-top: 3px; font-size: 14px; color: var(--gold); }
@@ -1117,7 +1118,7 @@ html:not(.ready) .rail, html.dlg-open .rail, html.lock .rail { opacity: 0; point
 @media (max-width: 1279px), (hover: none) { .rail { display: none; } }
 
 /* ---------- section marks ---------- */
-.message, .origin, .events, .spot, .passes, .schedule, .after, .partners, .reach { position: relative; }
+.origin, .events, .spot, .passes, .schedule, .after, .partners, .reach { position: relative; }
 .sec-mark {
   position: absolute; left: calc(var(--gutter) * 0.5); top: clamp(20px, 3vw, 56px); z-index: 0;
   pointer-events: none; user-select: none; white-space: nowrap; will-change: transform;
@@ -1126,22 +1127,6 @@ html:not(.ready) .rail, html.dlg-open .rail, html.lock .rail { opacity: 0; point
 }
 .sec-mark ~ .wrap { position: relative; z-index: 1; }
 .after .sec-mark { -webkit-text-stroke-color: rgba(216, 193, 154, 0.12); }
-
-/* ---------- message ---------- */
-.message { padding-block: clamp(96px, 13vw, 190px) clamp(64px, 9vw, 130px); }
-.msg-wrap { max-width: 1180px; display: grid; gap: clamp(28px, 4vw, 48px); }
-.msg-text { font-family: var(--f-display); font-size: clamp(28px, 3.9vw, 58px); line-height: 1.2; letter-spacing: -0.005em; color: var(--text); text-wrap: pretty; }
-.msg-text .w { opacity: 0.16; transition: opacity 0.5s var(--ease); }
-.msg-text .w.lit { opacity: 1; }
-.msg-text b { font-weight: 400; color: var(--gold-hi); }
-.msg-sign { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 28px; }
-.sign { width: clamp(170px, 20vw, 280px); height: auto; overflow: visible; }
-.sign text { font-family: var(--f-ml-d); font-weight: 800; font-size: 118px; fill: transparent; stroke: var(--gold); stroke-width: 1.2; stroke-dasharray: 2400; stroke-dashoffset: 2400; }
-.sign.signed text { animation: sign-draw 2.6s var(--ease-io) forwards, sign-fill 1.2s 1.9s var(--ease) forwards; }
-@keyframes sign-draw { to { stroke-dashoffset: 0; } }
-@keyframes sign-fill { to { fill: var(--gold); } }
-.sign-cap { padding-bottom: 14px; font-family: var(--f-mono); font-size: var(--fs-xs); letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-2); }
-.sign-cap span[lang] { font-family: var(--f-ml); letter-spacing: 0; text-transform: none; color: var(--gold-hi); }
 
 /* ---------- shared fact lists ---------- */
 .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; border-top: 1px solid var(--line-soft); }
@@ -1401,9 +1386,12 @@ html:not(.ready) .rail, html.dlg-open .rail, html.lock .rail { opacity: 0; point
 
 /* ---------- ages: every event chip carries its symbol ---------- */
 .stage-events button { display: inline-flex; align-items: center; gap: 8px; }
-.chip-g { width: 22px; height: 24px; flex: none; display: inline-block; color: var(--gold); }
+.chip-g { width: 18px; height: 18px; flex: none; display: inline-block; color: var(--gold-hi); }
 .chip-g svg { width: 100%; height: 100%; overflow: visible; }
-.chip-g .glyph *, .chip-g .glyph .pict * { vector-effect: non-scaling-stroke; stroke-width: 0.8; }
+.chip-g svg * { fill: none; stroke: currentColor; stroke-width: 1.15; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
+.chip-g svg .fillc { fill: currentColor; stroke: none; }
+.chip-g svg .faint { opacity: 0.45; }
+.chip-g svg .dash { stroke-dasharray: 2 2; }
 
 /* ---------- responsive ---------- */
 @media (max-width: 960px) { .tiers { grid-template-columns: 1fr; } }
@@ -1435,5 +1423,14 @@ html:not(.ready) .rail, html.dlg-open .rail, html.lock .rail { opacity: 0; point
 }
 @media (prefers-reduced-motion: reduce) {
   [data-tilt] { transform: none !important; }
-  .msg-text .w { opacity: 1; }
+}
+
+/* ---------- v5 finishing ---------- */
+@media (max-width: 520px) {
+  .plate { grid-template-columns: 1fr; }
+  .seal { width: 132px; }
+  .plate-body .btn { white-space: normal; text-align: center; max-width: 100%; }
+}
+@media (max-width: 560px) {
+  .fo-svg .fo-gl, .fo-svg .fo-tl { font-size: 11px; }
 }
