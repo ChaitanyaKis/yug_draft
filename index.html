@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Yugantra 2026</title>
-<meta name="description" content="Yugantra 2026 — where tech defines the യുഗം. A tech fest: code, robotics, design, AI and security, on the theme Ancient Eras × Future Technology. 20–22 November 2026.">
+<meta name="description" content="Yugantra 2026 — where tech defines the യുഗം. A tech fest across code, business and startups, culture and play, and cyber security, on the theme Ancient Eras × Future Technology. 20–22 November 2026.">
 <meta name="theme-color" content="#03110D">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Yugantra 2026">
@@ -30,6 +30,21 @@
   </div>
   <button class="boot-skip" id="bootSkip" type="button" tabindex="-1">Skip</button>
 </div>
+<nav class="rail" id="rail" aria-label="Page sections">
+  <b class="rail-line" aria-hidden="true"><i id="railFill"></i></b>
+  <a href="#top" data-sec="top"><i></i><span>Start</span></a>
+  <a href="#message" data-sec="message"><i></i><span>Message</span></a>
+  <a href="#origin" data-sec="origin"><i></i><span>Origins</span></a>
+  <a href="#ages" data-sec="ages"><i></i><span>Tracks</span></a>
+  <a href="#events" data-sec="events"><i></i><span>Events</span></a>
+  <a href="#spotlight" data-sec="spotlight"><i></i><span>Flagship</span></a>
+  <a href="#passes" data-sec="passes"><i></i><span>Passes</span></a>
+  <a href="#schedule" data-sec="schedule"><i></i><span>Schedule</span></a>
+  <a href="#stage" data-sec="stage"><i></i><span>Stage</span></a>
+  <a href="#partners" data-sec="partners"><i></i><span>Partners</span></a>
+  <a href="#faq" data-sec="faq"><i></i><span>FAQ</span></a>
+  <a href="#reach" data-sec="reach"><i></i><span>Contact</span></a>
+</nav>
 <div class="cursor" id="cursor" aria-hidden="true"><span class="c-ring"></span><span class="c-fig" id="cursorFig"></span><span class="c-dot"></span></div>
 
 <header class="nav" id="nav">
@@ -42,10 +57,10 @@
   <nav class="nav-links" aria-label="Sections">
     <a href="#ages">Tracks</a>
     <a href="#events">Events</a>
+    <a href="#passes">Passes</a>
     <a href="#schedule">Schedule</a>
     <a href="#stage">Stage</a>
-    <a href="#partners">Partners</a>
-    <a href="#faq">FAQ</a>
+    <a href="#reach">Contact</a>
   </nav>
   <button class="snd" id="sndBtn" type="button" aria-pressed="false" aria-label="Sound off. Turn sound on">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path class="snd-body" d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path class="snd-on" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="snd-off" d="M16 10l4 4M20 10l-4 4"/></svg>
@@ -63,8 +78,10 @@
     <a href="#events"><small><span data-bind="eventCount">14</span> events</small>Events</a>
     <a href="#schedule"><small><span data-bind="dayCount">3</span> days</small>Schedule</a>
     <a href="#stage"><small>Band competition</small>Stage</a>
+    <a href="#passes"><small>Fees & registration</small>Passes</a>
     <a href="#partners"><small>Sponsors</small>Partners</a>
     <a href="#faq"><small>Help</small>FAQ</a>
+    <a href="#reach"><small>Write to us</small>Contact</a>
   </nav>
   <p class="menu-foot"><span data-bind="dateLabel"></span> · <span data-bind="venue"></span></p>
 </div>
@@ -135,8 +152,21 @@
     <div class="mq-row mq-b"><div class="mq-track" id="mqB"></div></div>
   </div>
 
+  <!-- ============================ MESSAGE ============================ -->
+  <section class="message" id="message" aria-labelledby="msgTitle">
+    <div class="wrap msg-wrap">
+      <p class="eyebrow" id="msgTitle">The message</p>
+      <p class="msg-text" id="msgText"></p>
+      <div class="msg-sign">
+        <svg class="sign" id="sign" viewBox="0 0 420 150" aria-hidden="true"><text x="4" y="118">യുഗം</text></svg>
+        <p class="sign-cap">Where tech defines the <span lang="ml">യുഗം</span> · Team Yugantra, <span data-bind="edition"></span></p>
+      </div>
+    </div>
+  </section>
+
   <!-- ============================ ORIGIN ============================= -->
   <section class="origin" id="origin" aria-labelledby="originTitle">
+    <span class="sec-mark" aria-hidden="true">ORIGINS</span>
     <div class="wrap">
       <header class="sec-head sec-head-split" data-reveal>
         <div>
@@ -217,6 +247,7 @@
 
   <!-- ============================ EVENTS ============================= -->
   <section class="events" id="events" aria-labelledby="eventsTitle">
+    <span class="sec-mark" aria-hidden="true">EVENTS</span>
     <div class="wrap">
       <header class="sec-head sec-head-split" data-reveal>
         <div>
@@ -260,8 +291,66 @@
     </div>
   </dialog>
 
+  <!-- =========================== SPOTLIGHT =========================== -->
+  <section class="spot" id="spotlight" aria-labelledby="spotTitle">
+    <span class="sec-mark" aria-hidden="true">24H</span>
+    <div class="wrap">
+      <header class="sec-head sec-head-split" data-reveal>
+        <div>
+          <p class="eyebrow">Flagship · Code track</p>
+          <h2 class="h2" id="spotTitle">Twenty-four hours.</h2>
+        </div>
+        <p class="lead" id="spotLead"></p>
+      </header>
+      <div class="spot-grid">
+        <div class="spot-clock" data-reveal>
+          <svg class="clock24" id="clock24" viewBox="-130 -130 260 260" role="img" aria-labelledby="clockCap"></svg>
+          <p class="clock-cap" id="clockCap"></p>
+        </div>
+        <div class="spot-facts" data-reveal>
+          <dl class="facts" id="spotFacts"></dl>
+          <div class="fuel" id="fuel"></div>
+          <button class="btn btn-gold" type="button" data-open="hackathon">24-Hour Hackathon details</button>
+        </div>
+      </div>
+      <div class="take" data-reveal>
+        <div class="take-head">
+          <p class="eyebrow">What you take home</p>
+          <p class="take-note" id="takeNote"></p>
+        </div>
+        <div class="take-row" id="takeRow"></div>
+      </div>
+      <div class="faceoff" id="faceoff" data-reveal></div>
+    </div>
+  </section>
+
+  <!-- ============================= PASSES ============================ -->
+  <section class="passes" id="passes" aria-labelledby="passTitle">
+    <span class="sec-mark" aria-hidden="true">PASS</span>
+    <div class="wrap">
+      <header class="sec-head sec-head-split" data-reveal>
+        <div>
+          <p class="eyebrow">Passes &amp; registration</p>
+          <h2 class="h2" id="passTitle">One event, one pass.</h2>
+        </div>
+        <p class="lead" id="passLead"></p>
+      </header>
+      <div class="pass-grid">
+        <ol class="steps" id="steps" data-reveal></ol>
+        <figure class="pass-fig" data-reveal>
+          <div class="pass" id="pass" data-tilt></div>
+          <figcaption>Sample pass design. Yours carries your event and team.</figcaption>
+        </figure>
+      </div>
+      <div class="fees-wrap" data-reveal>
+        <table class="fees" id="fees"><caption>Every event at a glance</caption></table>
+      </div>
+    </div>
+  </section>
+
   <!-- =========================== SCHEDULE ============================ -->
   <section class="schedule" id="schedule" aria-labelledby="schedTitle">
+    <span class="sec-mark" aria-hidden="true">TIME</span>
     <div class="wrap">
       <header class="sec-head sec-head-split" data-reveal>
         <div>
@@ -278,6 +367,7 @@
 
   <!-- ============================== STAGE ============================== -->
   <section class="after" id="stage" aria-labelledby="afterTitle">
+    <span class="sec-mark" aria-hidden="true">LIVE</span>
     <div class="wrap">
       <header class="sec-head" data-reveal>
         <p class="eyebrow">Band competition</p>
@@ -290,13 +380,14 @@
 
   <!-- ============================ PARTNERS =========================== -->
   <section class="partners" id="partners" aria-labelledby="partnersTitle">
+    <span class="sec-mark" aria-hidden="true">PATRONS</span>
     <div class="wrap">
       <header class="sec-head sec-head-split" data-reveal>
         <div>
           <p class="eyebrow">Partners</p>
           <h2 class="h2" id="partnersTitle">Patrons of the next age.</h2>
         </div>
-        <p class="lead">Put your name on a track, an event or the whole fest. Every slot below is open for 2026.</p>
+        <p class="lead">Put your name on the whole fest, a track, or a single event. Here's what each partnership covers.</p>
       </header>
       <div class="assoc" id="assoc" data-reveal></div>
       <div class="tiers" id="tiers"></div>
@@ -316,6 +407,35 @@
         <h2 class="h2" id="faqTitle">Before you ask.</h2>
       </header>
       <div class="faq-list" id="faqList"></div>
+    </div>
+  </section>
+
+  <!-- ============================= CONTACT =========================== -->
+  <section class="reach" id="reach" aria-labelledby="reachTitle">
+    <span class="sec-mark" aria-hidden="true">REACH</span>
+    <div class="wrap reach-grid">
+      <header class="sec-head" data-reveal>
+        <p class="eyebrow">Contact</p>
+        <h2 class="h2" id="reachTitle">Ask us anything.</h2>
+        <p class="lead">Questions about an event, registration or partnering. Write to <b class="mono" data-bind="email"></b> or use the form.</p>
+        <ul class="reach-links" id="reachSocials"></ul>
+      </header>
+      <form class="form" id="reachForm" novalidate data-reveal>
+        <div class="f-row">
+          <label for="fTopic">Topic</label>
+          <select id="fTopic" name="topic"></select>
+        </div>
+        <div class="f-2">
+          <div class="f-row"><label for="fName">Name</label><input id="fName" name="name" autocomplete="name" required></div>
+          <div class="f-row"><label for="fEmail">Email</label><input id="fEmail" name="email" type="email" autocomplete="email" required></div>
+        </div>
+        <div class="f-row"><label for="fPhone">Phone <i>(optional)</i></label><input id="fPhone" name="phone" type="tel" autocomplete="tel"></div>
+        <div class="f-row"><label for="fMsg">Message</label><textarea id="fMsg" name="message" rows="4" required></textarea></div>
+        <div class="f-actions">
+          <button class="btn btn-gold" type="submit">Write the email</button>
+          <p class="form-note" id="formNote" role="status"></p>
+        </div>
+      </form>
     </div>
   </section>
 </main>

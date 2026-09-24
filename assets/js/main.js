@@ -322,10 +322,9 @@
   const deck = $('#deckLink');
   if (site.partnerDeckUrl) { deck.href = site.partnerDeckUrl; deck.target = '_blank'; deck.rel = 'noopener'; }
   else {
-    deck.textContent = 'Deck on request';
-    deck.classList.remove('btn-gold');
-    deck.setAttribute('aria-disabled', 'true');
-    deck.addEventListener('click', (e) => e.preventDefault());
+    deck.textContent = 'Request the deck';
+    deck.href = '#reach';
+    deck.dataset.topic = 'Partnerships';
   }
 
   $$('[data-copy-email]').forEach((b) => b.addEventListener('click', () => {
@@ -616,7 +615,7 @@
           <h3 class="stage-name">${figSVG(i)}<span>${esc(a.domain)}</span></h3>
           <p class="stage-domain">${esc(trackSummary(a))}</p>
           <p class="stage-text">${esc(a.text)}</p>
-          <ul class="stage-events" aria-label="Events in ${esc(a.domain)}">${evs.map((e) => `<li><button type="button" data-open="${e.id}" data-dial-ev="${e.id}">${esc(e.name)}${e.status === 'tbc' ? ' <em>TBC</em>' : ''}</button></li>`).join('')}</ul>
+          <ul class="stage-events" aria-label="Events in ${esc(a.domain)}">${evs.map((e) => `<li><button type="button" data-open="${e.id}" data-dial-ev="${e.id}"><span class="chip-g">${glyphSVG(e)}</span>${esc(e.name)}${e.status === 'tbc' ? ' <em>TBC</em>' : ''}</button></li>`).join('')}</ul>
         </div>
       </article>`;
     }).join('');
@@ -750,7 +749,7 @@
     if (!from) return null;
     if (typeof from === 'function') return flyRect(from());
     if (from instanceof DOMRect) return from;
-    const g = from.querySelector?.('.ev-glyph') || from;
+    const g = from.querySelector?.('.ev-glyph, .chip-g') || from;
     const r = g.getBoundingClientRect();
     return r.width ? r : null;
   }
@@ -977,16 +976,415 @@
   }
   function renderPartners() {
     $('#assoc').innerHTML = (D.associations || []).map((a) => `<div class="assoc-card"><span class="k">In association with</span><b>${esc(a.name)}</b><span>${esc(a.full)}</span><i>${esc(a.role)}</i></div>`).join('');
-    $('#tiers').innerHTML = D.partners.map((t) => {
-      const cards = t.tier.startsWith('Track')
-        ? D.ages.filter((a) => a.years).map((a) => `<div class="slot-card" data-dial-track="${a.id}">${figSVG(a.index)}<span>${esc(a.domain)}</span><i>open</i></div>`)
-        : Array.from({ length: t.slots }, (_, i) => `<div class="slot-card${t.slots === 1 ? ' big' : ''}"><span>${t.slots === 1 ? esc(t.tier) : `Event slot ${i + 1}`}</span><i>open</i></div>`);
-      return `<div class="tier" data-reveal><div><h3>${esc(t.tier)}</h3><p>${esc(t.note)}</p></div><div class="slots-grid">${cards.join('')}</div></div>`;
-    }).join('');
+    const vis = (t) => {
+      if (/title/i.test(t.tier)) return `<div class="tv-title" aria-hidden="true"><span>${esc(site.name)} ${esc(site.edition)}</span><i>×</i><span class="tv-you">Your brand</span></div>`;
+      if (/track/i.test(t.tier)) return `<ul class="tv-tracks">${D.ages.filter((a) => a.years).map((a) => `<li data-dial-track="${a.id}">${figSVG(AGE[a.id].index)}<span>${esc(a.domain)}</span><i>${eventsOf(a.id).length} events</i></li>`).join('')}</ul>`;
+      return `<ul class="tv-seats" aria-hidden="true">${Array.from({ length: t.slots }, (_, i) => `<li>${pad(i + 1)}</li>`).join('')}</ul>`;
+    };
+    $('#tiers').innerHTML = D.partners.map((t) => `<article class="tier" data-reveal>
+        <p class="tier-n"><span class="cnt"></span><small>${t.slots === 1 ? 'slot' : 'slots'}</small></p>
+        <h3>${esc(t.tier)}</h3>
+        <p class="tier-note">${esc(t.note)}</p>
+        ${vis(t)}
+      </article>`).join('');
+    $$('#tiers .cnt').forEach((el, i) => odoOnView(el, String(D.partners[i].slots)));
   }
   function renderFaq() {
     $('#faqList').innerHTML = D.faq.map(([q, a]) => `<details><summary>${esc(q)}<span class="pm" aria-hidden="true"></span></summary><p>${esc(a)}</p></details>`).join('');
   }
+
+  /* ------------------------------------------------------------------ *
+   * The message — the fest in one paragraph, lit word by word           *
+   * ------------------------------------------------------------------ */
+  const msgEl = $('#msgText');
+  let msgWords = [], msgLit = -1, signed = false;
+  function renderMessage() {
+    const comp = D.ages.filter((a) => a.years);
+    const names = comp.map((a) => `*${a.domain}*`);
+    const list = `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+    const place = site.venue.split(',').pop().trim();
+    const text = `Every age was counted down: ${comp.map((a) => `*${a.count}*`).join(', ')}. Yugantra is where that count ends and the next one begins. *${D.events.length} events* across ${list}, over *${String(WORDS[days] || days).toLowerCase()} days* in ${place}. Build for ${longest ? `${longest.hours} hours` : 'a day'} straight. Pitch to investors, live. Take the stage. Capture the flag. Then show us what the next age runs on.`;
+    let on = false;
+    msgEl.innerHTML = text.split(/\s+/).map((raw) => {
+      let w = raw, start = on;
+      if (w.startsWith('*')) { start = true; w = w.slice(1); }
+      const close = w.indexOf('*');
+      let inner = w, tail = '';
+      if (close >= 0) { inner = w.slice(0, close); tail = w.slice(close + 1); on = false; } else on = start;
+      return `<span class="w">${start ? `<b>${esc(inner)}</b>` : esc(inner)}${esc(tail)}</span>`;
+    }).join(' ');
+    msgWords = $$('.w', msgEl);
+    if (reduced) { msgWords.forEach((w) => w.classList.add('lit')); $('#sign').classList.add('signed'); signed = true; }
+  }
+  function updateMessage() {
+    if (!msgWords.length || reduced) return;
+    const r = msgEl.getBoundingClientRect();
+    if (r.bottom < -H || r.top > H * 2) return;
+    const p = clamp((H * 0.85 - r.top) / (H * 0.45 + r.height * 0.5), 0, 1);
+    const n = Math.round(p * msgWords.length);
+    if (n !== msgLit) {
+      const lo = Math.max(0, Math.min(n, msgLit)), hi = Math.max(n, msgLit);
+      for (let i = lo; i < hi; i++) msgWords[i].classList.toggle('lit', i < n);
+      msgLit = n;
+    }
+    if (!signed && p >= 1) { signed = true; $('#sign').classList.add('signed'); Sound.chime(); }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Spotlight — the 24 hours on one clock, what's included, the face-off *
+   * ------------------------------------------------------------------ */
+  const fmt12 = (hhmm) => { const m = toMinutes(hhmm); if (m == null) return hhmm; const h = Math.floor(m / 60); return `${((h + 11) % 12) + 1}:${pad(m % 60)} ${h < 12 ? 'am' : 'pm'}`; };
+  const cap1 = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  const splitFact = (x) => { const i = x.indexOf(':'); return i > 0 ? [x.slice(0, i), cap1(x.slice(i + 1).trim())] : ['Also', x]; };
+  const factsHTML = (rows) => rows.map(([k, v, odoV]) => `<div><dt>${esc(k)}</dt><dd>${odoV ? `<span class="cnt" data-v="${esc(odoV)}"></span>` : esc(v)}</dd></div>`).join('');
+  function parseFood(s) {
+    return String(s || '').split(/,\s*|\s+and\s+/i).map((p) => p.trim()).filter(Boolean).flatMap((p) => {
+      const m = /^(\d+)\s+(.+?)s?$/i.exec(p);
+      const name = (m ? m[2] : p).toLowerCase();
+      return Array.from({ length: m ? Number(m[1]) : 1 }, () => name);
+    });
+  }
+  const FOOD_ICON = {
+    breakfast: '<path d="M-11 5H11M-6 5A6 6 0 0 1 6 5M0 -9V-5M-8 -4L-5.5 -1.5M8 -4L5.5 -1.5M-11 9H11" />',
+    lunch: '<circle r="4.5"/><path d="M0 -11V-7.5M0 7.5V11M-11 0H-7.5M7.5 0H11M-7.8 -7.8L-5.3 -5.3M7.8 7.8L5.3 5.3M-7.8 7.8L-5.3 5.3M7.8 -7.8L5.3 -5.3"/>',
+    dinner: '<path d="M2 -10A10 10 0 1 0 10 3A7.5 7.5 0 0 1 2 -10Z"/>',
+    snack: '<path d="M-8 -3H6V2Q6 8 -1 8Q-8 8 -8 2Z"/><path d="M6 -1H8Q10.5 -1 10.5 1.5Q10.5 4 8 4H5.5M-4 -10Q-2 -8 -4 -6M1 -10Q3 -8 1 -6"/>'
+  };
+  const PERSON = '<circle cy="-5" r="5"/><path d="M-10 12Q-10 2 0 2Q10 2 10 12"/>';
+
+  const clk = { els: null, visible: false, hover: null, t0: 0, start: 0, hours: 24, day: 1, last: '' };
+  function goodie(kind, ev) {
+    const a = AGE[ev.era];
+    if (kind === 'id') return `<figure class="gd"><div class="gd-id" data-tilt>
+        <span class="gd-slot" aria-hidden="true"></span>
+        <span class="gd-k">${esc(site.name)} ${esc(site.edition)} · Participant</span>
+        <span class="gd-photo" aria-hidden="true"><svg viewBox="-14 -14 28 28">${PERSON}</svg></span>
+        <b class="gd-name">Your name</b>
+        <span class="gd-ev">${figSVG(a.index)}${esc(ev.name)}</span>
+        <span class="gd-meta">${esc(ev.teamLabel)} · ${esc(ev.venue)}</span>
+        <span class="gd-ml" lang="ml" aria-hidden="true">യുഗം</span>
+        <span class="foil" aria-hidden="true"></span>
+      </div><figcaption>ID card</figcaption></figure>`;
+    if (kind === 'cert') return `<figure class="gd gd-wide"><div class="gd-cert" data-tilt>
+        <span class="gd-k">Certificate</span>
+        <b class="gd-cert-ev">${esc(ev.name)}</b>
+        <span class="gd-line">Your name</span>
+        <span class="gd-sub">${esc(site.name)} ${esc(site.edition)} · Kollam Era ${esc(site.kollamEra)}</span>
+        <span class="gd-seal" aria-hidden="true">${glyphSVG(ev)}</span>
+        <span class="foil" aria-hidden="true"></span>
+      </div><figcaption>Certificate</figcaption></figure>`;
+    return `<figure class="gd"><div class="gd-sheet" data-tilt>
+        ${D.ages.map((x, i) => `<span class="stk" style="--r:${[-8, 6, -4, 9, -6][i] || 0}deg" data-dial-track="${x.id}">${figSVG(i)}<i>${esc(x.track)}</i></span>`).join('')}
+        <span class="stk stk-ml" lang="ml">യുഗം</span>
+        <span class="foil" aria-hidden="true"></span>
+      </div><figcaption>Stickers</figcaption></figure>`;
+  }
+  function renderSpotlight() {
+    const ev = EVENTS.hackathon;
+    if (!ev) { $('#spotlight').remove(); return; }
+    const prov = site.scheduleIsProvisional ? ' (provisional)' : '';
+    $('#spotLead').textContent = ev.blurb;
+    $('.spot-clock').dataset.dialEv = ev.id;
+
+    // ---- the clock: one revolution = the whole event
+    const start = toMinutes(ev.time) ?? 0, HRS = ev.hours || 24;
+    Object.assign(clk, { start, hours: HRS, day: ev.day || 1 });
+    const A = (h) => -Math.PI / 2 + (h / HRS) * TAU;
+    const P = (h, r) => `${f2(Math.cos(A(h)) * r)} ${f2(Math.sin(A(h)) * r)}`;
+    const large = (h0, h1) => (h1 - h0 > HRS / 2 ? 1 : 0);
+    const band = (h0, h1, r0, r1) => `M${P(h0, r1)}A${r1} ${r1} 0 ${large(h0, h1)} 1 ${P(h1, r1)}L${P(h1, r0)}A${r0} ${r0} 0 ${large(h0, h1)} 0 ${P(h0, r0)}Z`;
+    const at = (clockMin) => (((clockMin - start) % 1440) + 1440) % 1440 / 60;
+    // Night is 18:00–06:00: the same sunrise-at-06:00 convention as the ghati count.
+    const ns = at(18 * 60), ne = at(6 * 60);
+    const nights = (ns < ne ? [[ns, ne]] : [[ns, 24], [0, ne]]).map(([a0, a1]) => [Math.min(a0, HRS), Math.min(a1, HRS)]).filter(([a0, a1]) => a1 > a0);
+    let ticks = '', labels = '';
+    for (let h = 0; h < HRS; h++) {
+      const long = h % 6 === 0;
+      ticks += `M${P(h, 112)}L${P(h, long ? 100 : 106)}`;
+      if (h % 3 === 0) {
+        const m = (start + h * 60) % 1440;
+        labels += `<text x="${P(h, 86).split(' ')[0]}" y="${f2(Number(P(h, 86).split(' ')[1]) + 3)}"${long ? ' class="lg"' : ''}>${pad(Math.floor(m / 60))}:${pad(m % 60)}</text>`;
+      }
+    }
+    const nightLab = nights.map(([a0, a1]) => { const mid = (a0 + a1) / 2, [x, y] = P(mid, 121).split(' '); return a1 - a0 > 2 ? `<text class="ck-nl" x="${x}" y="${f2(Number(y) + 3)}">night</text>` : ''; }).join('');
+    $('#clock24').setAttribute('tabindex', '0');
+    $('#clock24').innerHTML = `
+      <circle r="112" class="ck-rim"/>
+      ${nights.map(([a0, a1]) => `<path class="ck-night" d="${band(a0, a1, 100, 112)}"/>`).join('')}
+      ${nightLab}
+      <path class="ck-ticks" d="${ticks}"/>
+      <g class="ck-labels">${labels}</g>
+      <circle r="66" class="ck-in"/>
+      <path class="ck-trail" id="ckTrail" d=""/>
+      <line class="ck-hand" id="ckHand" x1="0" y1="-68" x2="0" y2="-112"/>
+      <circle class="ck-tip" id="ckTip" cx="0" cy="-106" r="4"/>
+      <path class="ck-start" d="M0 -114L-5 -124H5Z"/>
+      <text class="ck-big" id="ckT" y="-2">T+00:00</text>
+      <text class="ck-sm" id="ckC" y="18"></text>
+      <text class="ck-sm ck-p" id="ckP" y="34"></text>`;
+    clk.els = { trail: $('#ckTrail'), hand: $('#ckHand'), tip: $('#ckTip'), t: $('#ckT'), c: $('#ckC'), p: $('#ckP'), A, P };
+    const demo = D.schedule.flatMap((d) => d.slots.map((s) => ({ d, s }))).find(({ s }) => s[4] === ev.id && /demo/i.test(s[1]));
+    $('#clockCap').textContent = `The ${ev.name} on one dial: ${HRS} hours from ${fmt12(ev.time)}, nights shaded${demo ? `, ending in demos on Day ${demo.d.day}` : ''}. Point at the ring to stop the clock.`;
+    const svg = $('#clock24');
+    const setFromPointer = (e) => {
+      const r = svg.getBoundingClientRect();
+      let a = Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2)) + Math.PI / 2;
+      a = ((a % TAU) + TAU) % TAU;
+      clk.hover = Math.round((a / TAU) * HRS * 4) / 4;
+    };
+    svg.addEventListener('pointermove', setFromPointer);
+    svg.addEventListener('pointerdown', setFromPointer);
+    svg.addEventListener('pointerleave', () => { if (clk.hover != null) clk.t0 = clock - clk.hover; clk.hover = null; });
+    svg.addEventListener('keydown', (e) => {
+      const step = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[e.key];
+      if (!step) return;
+      e.preventDefault();
+      const h = clk.hover != null ? clk.hover : Math.floor(clockHour());
+      clk.hover = ((h + step) % HRS + HRS) % HRS;
+    });
+    svg.addEventListener('blur', () => { if (clk.hover != null) clk.t0 = clock - clk.hover; clk.hover = null; });
+    new IntersectionObserver((en) => { const v = en[0].isIntersecting; if (v && !clk.visible) clk.t0 = clock; clk.visible = v; }).observe(svg);
+
+    // ---- facts, from the event itself
+    $('#spotFacts').innerHTML = factsHTML([
+      ['Starts', `${fmt12(ev.time)} · Day ${ev.day}${prov}`],
+      ['Runs', `${ev.hours} hours, through the night`],
+      ['Team', ev.teamLabel],
+      ['Entry', ev.fee],
+      ['Venue', ev.venue === 'TBA' ? 'To be announced' : ev.venue],
+      ['Prize pool', '', ev.prize ? rupees(ev.prize) : 'TBA'],
+      ...(ev.extras || []).map(splitFact)
+    ]);
+    $$('#spotFacts .cnt').forEach((el) => odoOnView(el, el.dataset.v));
+
+    // ---- fuel: parsed from the food line, no invented timings
+    const food = parseFood(ev.food);
+    if (food.length) {
+      const snacks = food.filter((f) => f === 'snack').length, meals = food.length - snacks;
+      $('#fuel').innerHTML = `<p class="fuel-k">Food, included · ${meals} meals${snacks ? ` + ${snacks} snacks` : ''}</p>
+        <ul class="fuel-row">${food.map((f, i) => `<li style="--k:${i}"><svg viewBox="-12 -12 24 24" aria-hidden="true">${FOOD_ICON[f] || FOOD_ICON.lunch}</svg><span>${esc(f)}</span></li>`).join('')}</ul>`;
+    } else $('#fuel').remove();
+
+    // ---- what you take home: the goodies line, rendered
+    const list = /:\s*(.+)$/.exec(ev.goodies || '');
+    const kinds = list ? list[1].split(/,\s*|\s+and\s+/i).map((g) => (/id card/i.test(g) ? 'id' : /certificate/i.test(g) ? 'cert' : /sticker/i.test(g) ? 'stickers' : null)).filter(Boolean) : [];
+    if (kinds.length) {
+      const others = D.events.filter((e) => e.id !== ev.id && e.goodies).map((e) => e.name);
+      $('#takeNote').textContent = `${ev.goodies} with the ${ev.name}.${others.length ? ` ${others.join(', ').replace(/, ([^,]*)$/, ' and $1')} include goodies too.` : ''} Designs shown are illustrative.`;
+      $('#takeRow').innerHTML = kinds.map((k) => goodie(k, ev)).join('');
+    } else $('.take').remove();
+
+    // ---- the Pitchathon's face-off: seats parsed from its panels
+    const pe = EVENTS.pitchathon;
+    if (!pe) { $('#faceoff').remove(); return; }
+    const panels = (pe.extras || []).map((x) => /^(\w+)\s+panel:\s*(\d+)\s+(\w+)/i.exec(x)).filter(Boolean).map((m) => ({ n: Number(m[2]), who: m[3] }));
+    const G = panels.length, GAP = 18, SPAN = 150, each = G ? (SPAN - GAP * (G - 1)) / G : 0;
+    let seats = '', groupLabels = '', sight = '', k = 0;
+    panels.forEach((p, g) => {
+      const a0 = -90 - SPAN / 2 + g * (each + GAP);
+      for (let i = 0; i < p.n; i++) {
+        const a = ((a0 + (each * (i + 0.5)) / p.n) * Math.PI) / 180;
+        const x = Math.cos(a) * 118, y = 96 + Math.sin(a) * 118;
+        seats += `<g class="fo-seat g${g}" style="--k:${k++}" transform="translate(${f2(x)} ${f2(y)})"><circle r="11"/><svg x="-8" y="-8" width="16" height="16" viewBox="-14 -14 28 28">${PERSON}</svg></g>`;
+        sight += `M0 104L${f2(x)} ${f2(y)}`;
+      }
+      const am = ((a0 + each / 2) * Math.PI) / 180;
+      groupLabels += `<text class="fo-gl" x="${f2(Math.cos(am) * 150)}" y="${f2(96 + Math.sin(am) * 150)}">${p.n} ${esc(p.who)}</text>`;
+    });
+    const [need, max] = teamRange(pe.team);
+    const team = Array.from({ length: max }, (_, i) => `<circle cx="${f2((i - (max - 1) / 2) * 16)}" cy="112" r="5"${i < need ? ' class="fillc"' : ''}/>`).join('');
+    const parts = /(\d+)\s*hours?\s*\+\s*(\d+)-hour/i.exec(pe.duration);
+    const [build, live] = parts ? [Number(parts[1]), Number(parts[2])] : [pe.hours || 0, 0];
+    $('#faceoff').dataset.dialEv = pe.id;
+    $('#faceoff').dataset.ev = pe.id;
+    $('#faceoff').innerHTML = `
+      <div class="fo-text">
+        <p class="eyebrow">${esc(AGE[pe.era].domain)} · ${esc(pe.name)}</p>
+        <h3 class="fo-h">The CEO Face-off, live.</h3>
+        <p class="fo-p">${esc(pe.blurb)}</p>
+        <dl class="facts facts-sm">${factsHTML([['Team', pe.teamLabel], ['Entry', pe.fee], ['Prize pool', '', pe.prize ? rupees(pe.prize) : 'TBA'], ['Food', pe.food || 'TBA']])}</dl>
+        <button class="btn" type="button" data-open="${pe.id}">${esc(pe.name)} details</button>
+      </div>
+      <div class="fo-vis" aria-hidden="true">
+        <svg class="fo-svg" viewBox="-170 -50 340 190">
+          <path class="fo-sight" d="${sight}"/>
+          ${seats}${groupLabels}
+          <text class="fo-timer" y="44">${pad(live * 60)}:00</text>
+          <text class="fo-tl" y="62">minutes, live</text>
+          <g class="fo-team">${team}</g>
+          <text class="fo-gl you" y="136">Your team</text>
+        </svg>
+        <div class="fo-bar">${Array.from({ length: build + live }, (_, i) => `<i class="${i < build ? 'b' : 'l'}" style="--k:${i}"></i>`).join('')}</div>
+        <p class="fo-bar-k"><span>${build} hours · build the pitch</span><span>${live} hour · face-off</span></p>
+      </div>`;
+    $$('#faceoff .cnt').forEach((el) => odoOnView(el, el.dataset.v));
+  }
+  const clockHour = () => (clk.hover != null ? clk.hover : reduced ? 0 : ((clock - clk.t0) % clk.hours + clk.hours) % clk.hours);
+  function updateClock() {
+    if (!clk.els || !clk.visible) return;
+    const h = clockHour();
+    const q = Math.round(h * 60);
+    const key = clk.hover != null ? `h${q}` : `a${Math.round(h * 240)}`;
+    if (key === clk.last) return;
+    clk.last = key;
+    const { A, P } = clk.els;
+    const a = A(h), x = Math.cos(a), y = Math.sin(a);
+    clk.els.hand.setAttribute('x1', f2(x * 68)); clk.els.hand.setAttribute('y1', f2(y * 68));
+    clk.els.hand.setAttribute('x2', f2(x * 112)); clk.els.hand.setAttribute('y2', f2(y * 112));
+    clk.els.tip.setAttribute('cx', f2(x * 106)); clk.els.tip.setAttribute('cy', f2(y * 106));
+    const hh = Math.min(h, clk.hours - 0.001);
+    clk.els.trail.setAttribute('d', hh > 0.02 ? `M${P(0, 106)}A106 106 0 ${hh > clk.hours / 2 ? 1 : 0} 1 ${P(hh, 106)}` : '');
+    const abs = clk.start + q, m = abs % 1440, cm = Math.floor(m / 60);
+    clk.els.t.textContent = `T+${pad(Math.floor(q / 60))}:${pad(q % 60)}`;
+    clk.els.c.textContent = `${pad(cm)}:${pad(m % 60)} IST`;
+    clk.els.p.textContent = `Day ${clk.day + Math.floor(abs / 1440)} · ${cm >= 6 && cm < 18 ? 'daytime' : 'night'}`;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Passes — how to register, a sample pass, every fee on one table     *
+   * ------------------------------------------------------------------ */
+  function codeGrid(seed) {
+    let h = 2166136261;
+    for (const c of seed) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
+    const rnd = () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return (h >>> 0) / 4294967296; };
+    let cells = '';
+    for (let y = 0; y < 9; y++) for (let x = 0; x < 4; x++) {
+      if (rnd() < 0.5) continue;
+      cells += `<rect x="${x}" y="${y}" width="0.86" height="0.86"/>`;
+      if (x < 3) cells += `<rect x="${6 - x}" y="${y}" width="0.86" height="0.86"/>`;
+    }
+    return `<svg class="pass-code" viewBox="-0.5 -0.5 8 10" aria-hidden="true">${cells}</svg>`;
+  }
+  let passFor = '';
+  function setPass(id) {
+    const ev = EVENTS[id];
+    if (!ev || id === passFor) return;
+    passFor = id;
+    const a = AGE[ev.era];
+    const code = `YG${site.edition.slice(2)} · ${(ev.short || ev.id).replace(/[^A-Za-z]/g, '').slice(0, 4).toUpperCase()} · 0001`;
+    const pass = $('#pass');
+    pass.innerHTML = `<div class="pass-main">
+        <div class="pass-top"><span class="pass-brand">${esc(site.name)} ’${esc(site.edition.slice(2))}</span><span>Event pass</span></div>
+        <span class="pass-track">${figSVG(a.index)}${esc(a.track)}</span>
+        <b class="pass-ev">${esc(ev.name)}</b>
+        <dl class="pass-dl">
+          <div><dt>When</dt><dd>${esc(ev.day === 0 ? 'Online' : `Day ${ev.day} · ${ev.time}`)}</dd></div>
+          <div><dt>Venue</dt><dd>${esc(ev.venue)}</dd></div>
+          <div><dt>Team</dt><dd>${esc(ev.teamLabel)}</dd></div>
+          <div><dt>Entry</dt><dd>${esc(ev.fee)}</dd></div>
+        </dl>
+        <span class="pass-glyph">${glyphSVG(ev)}</span>
+      </div>
+      <div class="pass-stub">${codeGrid(ev.id)}<span class="pass-no">${esc(code)}</span></div>
+      <span class="pass-sample" aria-hidden="true">Sample</span>
+      <span class="foil" aria-hidden="true"></span>`;
+    pass.setAttribute('aria-label', `Sample pass for ${ev.name}`);
+    redraw($('.glyph', pass));
+  }
+  function renderPasses() {
+    const amount = (e) => { const m = /₹\s?([\d,]+)/.exec(e.fee); return m ? Number(m[1].replace(/,/g, '')) : null; };
+    const priced = D.events.filter((e) => amount(e) != null).sort((a, b) => amount(a) - amount(b));
+    const lo = priced[0], hi = priced[priced.length - 1];
+    const tba = D.events.length - priced.length;
+    $('#passLead').textContent = `Each event has its own entry fee${lo ? `, from ${lo.fee} for ${lo.name} to ${hi.fee} for the ${hi.name}` : ''}. You pay when you register.`;
+    const steps = [
+      ['Pick your events', `${D.events.length} events across ${D.ages.length} tracks. Each lists its team size, fee and prize pool.`, '#events'],
+      ['Register', site.registerUrl ? 'Register from the event you picked.' : `Registration opens ${site.registrationOpens}. The link goes live on every event.`],
+      ['Pay the entry fee', `Per person or per team, as listed below.${tba ? ` ${tba} fees are still to be announced.` : ''}`],
+      ['Turn up', `Your event's day, time and venue are on the schedule${site.scheduleIsProvisional ? ', provisional for now' : ''}.`, '#schedule']
+    ];
+    $('#steps').innerHTML = steps.map(([t, d, href], i) => `<li style="--k:${i}"><span class="st-n">${pad(i + 1)}</span><div><h3>${href ? `<a href="${href}">${esc(t)} <i aria-hidden="true">→</i></a>` : esc(t)}</h3><p>${esc(d)}</p></div></li>`).join('');
+    $('.pass-fig figcaption').textContent = 'Sample pass design. Point at an event in the table to preview its pass.';
+    setPass(EVENTS.hackathon ? 'hackathon' : D.events[0].id);
+
+    const prov = site.scheduleIsProvisional;
+    $('#fees').innerHTML = `<caption>Every event at a glance${prov ? ' · days and times are provisional' : ''}</caption>
+      <thead><tr><th scope="col"><span class="sr">Track</span></th><th scope="col">Event</th><th scope="col">Team</th><th scope="col">Entry fee</th><th scope="col">Prize pool</th><th scope="col">When</th></tr></thead>
+      <tbody>${DIAL_EVENTS.map((ev) => {
+        const a = AGE[ev.era];
+        const prize = ev.prize ? rupees(ev.prize) : ev.kind === 'competition' ? 'TBA' : '—';
+        return `<tr data-ev="${ev.id}" data-dial-ev="${ev.id}" data-pass="${ev.id}">
+          <td class="fe-fig" title="${esc(a.domain)}">${figSVG(a.index)}</td>
+          <th scope="row"><button type="button" data-open="${ev.id}">${esc(ev.name)}</button>${ev.status === 'tbc' ? ' <em class="tbc">TBC</em>' : ''}</th>
+          <td data-k="Team">${esc(ev.teamLabel)}</td>
+          <td data-k="Entry">${esc(ev.fee)}</td>
+          <td data-k="Prize" class="fe-prize">${prize}</td>
+          <td data-k="When">${esc(whenLabel(ev))}</td></tr>`;
+      }).join('')}</tbody>`;
+    const pick = (e) => { const tr = e.target.closest && e.target.closest('[data-pass]'); if (tr) setPass(tr.dataset.pass); };
+    $('#fees').addEventListener('pointerover', pick);
+    $('#fees').addEventListener('focusin', pick);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Contact — a form that writes the email for you                      *
+   * ------------------------------------------------------------------ */
+  function initReach() {
+    const topics = ['Events', 'Registration', 'Partnerships', 'Other'];
+    const topic = $('#fTopic');
+    topic.innerHTML = topics.map((t) => `<option>${t}</option>`).join('');
+    $('#reachSocials').innerHTML = site.socials.map((s) => `<li><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.label)} <i aria-hidden="true">↗</i></a></li>`).join('');
+    const form = $('#reachForm'), note = $('#formNote');
+    const fields = { name: $('#fName'), email: $('#fEmail'), message: $('#fMsg') };
+    const checks = {
+      name: (v) => v.trim().length >= 2,
+      email: (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()),
+      message: (v) => v.trim().length >= 10
+    };
+    Object.entries(fields).forEach(([k, el]) => el.addEventListener('input', () => { if (el.getAttribute('aria-invalid') === 'true' && checks[k](el.value)) el.removeAttribute('aria-invalid'); }));
+    let composed = '';
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const bad = Object.keys(fields).filter((k) => !checks[k](fields[k].value));
+      Object.entries(fields).forEach(([k, el]) => (bad.includes(k) ? el.setAttribute('aria-invalid', 'true') : el.removeAttribute('aria-invalid')));
+      if (bad.length) {
+        const words = { name: 'your name', email: 'a valid email', message: 'a message of at least 10 characters' };
+        note.textContent = `Please add ${bad.map((k) => words[k]).join(', ').replace(/, ([^,]*)$/, ' and $1')}.`;
+        note.className = 'form-note err';
+        fields[bad[0]].focus();
+        return;
+      }
+      const name = fields.name.value.trim(), from = fields.email.value.trim(), phone = $('#fPhone').value.trim();
+      const subject = `[${site.name} ${site.edition}] ${topic.value}: ${name}`;
+      const body = `${fields.message.value.trim()}\n\n${name}\n${from}${phone ? `\n${phone}` : ''}`;
+      composed = `To: ${site.email}\nSubject: ${subject}\n\n${body}`;
+      const a = document.createElement('a');
+      a.href = `mailto:${site.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      try { a.click(); } catch (_) { /* blocked: the copy button below still works */ }
+      note.className = 'form-note ok';
+      note.innerHTML = `Your mail app should open with this ready to send. Nothing opened? <button type="button" class="linkish" id="copyMsg">Copy the message</button> and send it to <b class="mono">${esc(site.email)}</b>.`;
+      Sound.chime();
+    });
+    note.addEventListener('click', (e) => {
+      if (!e.target.closest('#copyMsg')) return;
+      try { navigator.clipboard.writeText(composed).then(() => toast('Message copied'), () => toast('Copy blocked, select the text instead')); } catch (_) { toast('Copy blocked, select the text instead'); }
+    });
+    // "Request the deck" and partner links land here with the topic set.
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-topic]');
+      if (!t) return;
+      topic.value = t.dataset.topic;
+      setTimeout(() => fields.name.focus({ preventScroll: true }), 700);
+    });
+  }
+
+  /* cards you can pick up: goodies and the pass tilt toward the pointer */
+  let tiltEl = null;
+  const resetTilt = (el) => { el.classList.remove('tilting'); ['--rx', '--ry'].forEach((p) => el.style.removeProperty(p)); };
+  document.addEventListener('pointermove', (e) => {
+    if (e.pointerType === 'touch' || reduced) return;
+    const el = e.target.closest ? e.target.closest('[data-tilt]') : null;
+    if (tiltEl && tiltEl !== el) resetTilt(tiltEl);
+    tiltEl = el;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const x = clamp((e.clientX - r.left) / r.width, 0, 1), y = clamp((e.clientY - r.top) / r.height, 0, 1);
+    el.classList.add('tilting');
+    el.style.setProperty('--rx', `${((0.5 - y) * 10).toFixed(2)}deg`);
+    el.style.setProperty('--ry', `${((x - 0.5) * 14).toFixed(2)}deg`);
+    el.style.setProperty('--mx', `${(x * 100).toFixed(1)}%`);
+    el.style.setProperty('--my', `${(y * 100).toFixed(1)}%`);
+  }, { passive: true });
 
   /* ------------------------------------------------------------------ *
    * Nav, menu, reveal                                                   *
@@ -1006,14 +1404,33 @@
   addEventListener('keydown', (e) => { if (e.key === 'Escape' && menuOpen) { setMenu(false); menuBtn.focus(); } });
 
   const navLinks = $$('.nav-links a');
+  const railLinks = $$('#rail a');
+  const railFill = $('#railFill'), navProgress = $('#navProgress');
   const sectionIO = new IntersectionObserver((entries) => {
     entries.forEach((en) => {
       if (!en.isIntersecting) return;
       const id = en.target.id;
       navLinks.forEach((a) => a.classList.toggle('on', a.getAttribute('href') === `#${id}`));
+      railLinks.forEach((a) => {
+        const on = a.dataset.sec === id;
+        a.classList.toggle('on', on);
+        if (on) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current');
+      });
     });
   }, { rootMargin: '-45% 0px -50% 0px' });
-  ['top', 'origin', 'ages', 'events', 'schedule', 'stage', 'partners', 'faq'].forEach((id) => { const el = document.getElementById(id); if (el) sectionIO.observe(el); });
+  railLinks.forEach((a) => { const el = document.getElementById(a.dataset.sec); if (el) sectionIO.observe(el); else a.remove(); });
+
+  /* section names drift behind the content, slower than the page */
+  const marks = $$('.sec-mark').map((el) => ({ el, host: el.parentElement }));
+  function updateMarks() {
+    if (reduced) return;
+    for (const m of marks) {
+      const r = m.host.getBoundingClientRect();
+      if (r.bottom < 0 || r.top > H) continue;
+      const t = (r.top + r.height / 2 - H / 2) / (H + r.height);
+      m.el.style.transform = `translate3d(${(t * -180).toFixed(1)}px, ${(t * 240).toFixed(1)}px, 0)`;
+    }
+  }
 
   function initReveal() {
     const vh = innerHeight;
@@ -1103,12 +1520,16 @@
 
   const EMERALD = [0.086, 0.188, 0.169], BURGUNDY = [0.224, 0.02, 0.09], BRONZE = [0.373, 0.318, 0.239];
   const AGE_TINT = [EMERALD, [0.2, 0.19, 0.15], [0.12, 0.2, 0.16], BURGUNDY, BRONZE];
-  const SECTIONS = ['top', 'origin', 'ages', 'events', 'schedule', 'stage', 'partners', 'faq', 'contact'].map((id) => ({ id, el: document.getElementById(id), cover: 0 }));
+  const SECTIONS = ['top', 'message', 'origin', 'ages', 'events', 'spotlight', 'passes', 'schedule', 'stage', 'partners', 'faq', 'reach', 'contact'].map((id) => ({ id, el: document.getElementById(id), cover: 0 }));
   const dialSlot = $('#dialSlot');
   function targetFor(id, w, h) {
     const portrait = w < h * 0.9;
     switch (id) {
       case 'top': return portrait ? { x: w * 0.5, y: h * 0.27, r: Math.min(w * 0.6, h * 0.3), o: 1, t: EMERALD } : { x: w * 0.71, y: h * 0.5, r: h * 0.62, o: 1, t: EMERALD };
+      case 'message': return portrait ? { x: w * 0.5, y: h * 0.5, r: h * 0.5, o: 0.1, t: EMERALD } : { x: w * 0.82, y: h * 0.52, r: h * 0.66, o: 0.14, t: EMERALD };
+      case 'spotlight': return portrait ? { x: w * 0.5, y: h * 0.1, r: w * 0.8, o: 0.08, t: EMERALD } : { x: w * 0.02, y: h * 0.5, r: h * 0.62, o: 0.16, t: EMERALD };
+      case 'passes': return portrait ? { x: w * 0.5, y: h * 0.9, r: w * 0.8, o: 0.08, t: BRONZE } : { x: w * 0.96, y: h * 0.72, r: h * 0.56, o: 0.14, t: BRONZE };
+      case 'reach': return { x: w * 0.5, y: h * 1.02, r: Math.min(w, h) * 0.55, o: 0.3, t: BRONZE };
       case 'origin': return portrait ? { x: w * 0.5, y: h * 0.5, r: h * 0.55, o: 0.12, t: EMERALD } : { x: w * 0.9, y: h * 0.5, r: h * 0.62, o: 0.2, t: EMERALD };
       case 'ages': {
         const tint = AGE_TINT[agesState.stage] || EMERALD;
@@ -1423,7 +1844,9 @@
     }
     lastY = y;
     const docH = document.documentElement.scrollHeight - H;
-    $('#navProgress').style.transform = `scaleX(${docH > 0 ? clamp(y / docH, 0, 1).toFixed(4) : 0})`;
+    const prog = docH > 0 ? clamp(y / docH, 0, 1).toFixed(4) : 0;
+    navProgress.style.transform = `scaleX(${prog})`;
+    railFill.style.transform = `scaleY(${prog})`;
 
     const wall = Date.now();
     if (wall - lastCd > 100) { lastCd = wall; updateCountdown(wall); updateGhatiText(ghatiFraction(wall)); }
@@ -1431,6 +1854,9 @@
     updateAges(H);
     tickReadouts(dt * 1000);
     updateSpot();
+    updateMessage();
+    updateClock();
+    updateMarks();
 
     if (mq.wa && !reduced) {
       const sp = 46 + Math.min(1600, Math.abs(vel)) * 0.35;
@@ -1485,6 +1911,10 @@
       let fa = held.i, fb = held.i, figure = AGE[DIAL_EVENTS[held.i].era].index, amt = 0.75, capKind = 'held', capI = held.i, turn = true;
       if (agesState.active && TRACK_RANGE[agesState.stage]) {
         [fa, fb] = TRACK_RANGE[agesState.stage]; figure = agesState.stage; capKind = 'track'; capI = agesState.stage;
+      } else {
+        // the flagship and the pass preview hold their own event while in view
+        const own = (cover.spotlight || 0) > 0.5 ? 'hackathon' : (cover.passes || 0) > 0.5 ? passFor : null;
+        if (own && DIAL_INDEX[own] != null) { fa = fb = DIAL_INDEX[own]; figure = AGE[EVENTS[own].era].index; capKind = 'ev'; capI = fa; }
       }
       if (pageFocus) {
         if (pageFocus.track != null && TRACK_RANGE[pageFocus.track]) { [fa, fb] = TRACK_RANGE[pageFocus.track]; figure = pageFocus.track; capKind = 'track'; capI = pageFocus.track; }
@@ -1551,9 +1981,13 @@
   renderAges();
   renderEvents();
   renderSchedule();
+  renderMessage();
+  renderSpotlight();
+  renderPasses();
   renderStage();
   renderPartners();
   renderFaq();
+  initReach();
   initReadouts();
   resize();
   initReveal();

@@ -47,6 +47,17 @@ Nothing on the page is decoration. Every figure, tick, dot, ring, sound and moti
 - **Culture & Play:** Chaturanga, shown as a knight's tour.
 - **Cyber Security:** Katapayadi, the Kerala number code, 683 CE.
 
+**Sections, in order:** hero (the dial) → the message → origins → tracks as ages → events → the flagship → passes → schedule → the Stage → partners → FAQ → contact → footer. A rail on the right edge (wide screens) shows where you are.
+
+- **The message.** One paragraph built from the data: the event count, the track names, the number of days. It lights word by word as you scroll, then the യുഗം signature draws itself.
+- **The flagship.** The 24-Hour Hackathon on a 24-hour clock that starts at 13:30. Nights are shaded (18:00–06:00, the same sunrise convention as the ghatis). Point at the ring to read any hour.
+  - Food is parsed from the event's `food` line. There are no invented meal times.
+  - The goodies line (ID card, certificate, stickers) is rendered as tiltable cards, marked illustrative.
+  - The Pitchathon's CEO Face-off seats come from its `extras` (3 judges, 3 investors), with an 8 + 1 hour bar.
+- **Passes.** Four steps to register, a sample pass for any event (point at a row in the fee table), and every event's team, fee, prize pool and slot in one table.
+- **Partners.** The three tiers with their slot counts, plus the CSAI association. "Request the deck" opens the contact form with the Partnerships topic selected.
+- **Contact.** The form checks the fields and composes an email to `site.email` in the visitor's mail app. If no mail app opens, it offers to copy the message. No data is sent anywhere.
+
 ## Structure
 
 ```
