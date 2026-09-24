@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Yugantra 2026</title>
+<meta name="description" content="Yugantra 2026 — where tech defines the യുഗം. A tech fest: code, robotics, design, AI and security, on the theme Ancient Eras × Future Technology. 20–22 November 2026.">
+<meta name="theme-color" content="#03110D">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Yugantra 2026">
+<meta property="og:description" content="Where tech defines the യുഗം. Ancient Eras × Future Technology.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-50 -50 100 100'%3E%3Crect x='-50' y='-50' width='100' height='100' fill='%2303110D'/%3E%3Cg fill='none' stroke='%23A38560' stroke-width='5' stroke-linecap='round'%3E%3Ccircle r='42'/%3E%3Cpath d='M13 -18A22 22 0 1 1 -13 -18M0 -27V-3'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+Chettan+2:wght@700;800&family=DM+Mono:wght@300;400&family=Jost:wght@300;400;500&family=Marcellus&family=Noto+Serif+Malayalam:wght@400;600&display=swap">
+<link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+<!--@BODY-->
+<script>document.documentElement.classList.add('js');</script>
+<a class="skip" href="#main">Skip to content</a>
+<canvas id="dial" aria-hidden="true"></canvas>
+<div class="veil" id="veil" aria-hidden="true"></div>
+
+<div class="intro" id="intro" aria-hidden="true">
+  <pre class="boot-log" id="bootLog"></pre>
+  <div class="intro-count">
+    <span id="introNum">43,20,000</span>
+    <small id="introLabel">years in a Mahayuga</small>
+  </div>
+  <button class="boot-skip" id="bootSkip" type="button" tabindex="-1">Skip</button>
+</div>
+<div class="cursor" id="cursor" aria-hidden="true"><span class="c-ring"></span><span class="c-fig" id="cursorFig"></span><span class="c-dot"></span></div>
+
+<header class="nav" id="nav">
+  <a class="brand" href="#top" aria-label="Yugantra 2026 — back to top">
+    <svg class="brand-mark" viewBox="-50 -50 100 100" aria-hidden="true">
+      <circle r="44"></circle><circle r="36" class="bm-in"></circle><path class="bm-pw" d="M13 -18A22 22 0 1 1 -13 -18M0 -27V-3"></path>
+    </svg>
+    <span class="brand-word">Yugantra</span><span class="brand-year">’26</span>
+  </a>
+  <nav class="nav-links" aria-label="Sections">
+    <a href="#ages">Tracks</a>
+    <a href="#events">Events</a>
+    <a href="#schedule">Schedule</a>
+    <a href="#stage">Stage</a>
+    <a href="#partners">Partners</a>
+    <a href="#faq">FAQ</a>
+  </nav>
+  <button class="snd" id="sndBtn" type="button" aria-pressed="false" aria-label="Sound off. Turn sound on">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path class="snd-body" d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path class="snd-on" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="snd-off" d="M16 10l4 4M20 10l-4 4"/></svg>
+  </button>
+  <a class="btn btn-gold nav-cta" data-register href="#events">Register</a>
+  <button class="menu-btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="menu">
+    <span class="mb-lines" aria-hidden="true"><i></i><i></i></span><span class="sr">Menu</span>
+  </button>
+  <div class="nav-progress" aria-hidden="true"><i id="navProgress"></i></div>
+</header>
+
+<div class="menu" id="menu" hidden>
+  <nav aria-label="Menu">
+    <a href="#ages"><small><span data-bind="trackCount">4</span> tracks · 4 ages</small>Tracks</a>
+    <a href="#events"><small><span data-bind="eventCount">14</span> events</small>Events</a>
+    <a href="#schedule"><small><span data-bind="dayCount">3</span> days</small>Schedule</a>
+    <a href="#stage"><small>Band competition</small>Stage</a>
+    <a href="#partners"><small>Sponsors</small>Partners</a>
+    <a href="#faq"><small>Help</small>FAQ</a>
+  </nav>
+  <p class="menu-foot"><span data-bind="dateLabel"></span> · <span data-bind="venue"></span></p>
+</div>
+
+<main id="main">
+
+  <!-- ============================== HERO ============================== -->
+  <section class="hero" id="top" aria-label="Yugantra 2026">
+    <div class="hero-main" id="heroMain">
+      <div class="hero-ancient" id="heroAncient">
+        <p class="eyebrow" id="heroEyebrow"><span data-bind="kind"></span> · Edition <span data-bind="edition"></span></p>
+        <h1 class="wordmark" id="wordmark"><span class="sr">Yugantra 2026</span><span class="wm" id="wm" aria-hidden="true"></span></h1>
+        <p class="tagline" id="tagline">Where tech defines the <span class="ml-gold" lang="ml">യുഗം</span></p>
+        <ul class="tracks" id="tracks" aria-label="Tracks"></ul>
+        <p class="hero-date" id="heroDate"><span data-bind="dateLabel"></span><span>Kollam Era <span data-bind="kollamEra"></span></span><span data-bind="venue"></span></p>
+      </div>
+      <div class="hero-future" id="heroFuture" aria-hidden="true">
+        <p class="f-eyebrow" data-sync="heroEyebrow">fest.init({ theme: "ancient × future" })</p>
+        <div class="f-wordmark" id="fwm" data-sync="wordmark"></div>
+        <p class="f-tagline" data-sync="tagline">where tech defines the era<i class="caret"></i></p>
+        <p class="f-tracks" id="fTracks" data-sync="tracks"></p>
+        <p class="f-date" data-sync="heroDate" id="fDate"></p>
+      </div>
+    </div>
+
+    <div class="hero-foot">
+      <div class="countdown" id="countdown">
+        <p class="cd-label" id="cdLabel">Until the next yuga</p>
+        <div class="cd-row cd-greg" role="timer" aria-label="Time until Yugantra begins">
+          <span class="u"><b data-k="d">00</b><i>days</i></span>
+          <span class="u"><b data-k="h">00</b><i>hrs</i></span>
+          <span class="u"><b data-k="m">00</b><i>min</i></span>
+          <span class="u"><b data-k="s">00</b><i>sec</i></span>
+        </div>
+        <div class="cd-row cd-vedic">
+          <span class="u"><b data-k="dv">00</b><i>divasa</i></span>
+          <span class="u"><b data-k="gh">00</b><i>ghati</i></span>
+          <span class="u"><b data-k="pa">00</b><i>pala</i></span>
+          <span class="u"><b data-k="vp">00</b><i>vipala</i></span>
+        </div>
+      </div>
+      <p class="dial-legend">
+        <span class="dl-k">This dial is the fest</span>
+        <span>From the centre out: <span data-bind="trackCount">4</span> tracks, <span data-bind="eventCount">16</span> events, <span data-bind="dayCount">3</span> days of sessions and every prize. The marker at the top holds the next event and the centre shows its track. Point at any event to open it.</span>
+        <span class="dl-units"><b id="nextUp">—</b></span>
+        <span class="dl-units">Hand on the schedule ring · <b id="ghatiNow">—</b> · ghatis since 06:00 IST</span>
+      </p>
+      <div class="hero-ctas">
+        <a class="btn btn-gold" data-register href="#events">Register</a>
+        <a class="btn" href="#events">Explore events <span aria-hidden="true">↓</span></a>
+      </div>
+    </div>
+
+    <div class="lens-ring" id="lensRing" aria-hidden="true">
+      <svg viewBox="-100 -100 200 200">
+        <circle class="lr-rim" r="86"></circle>
+        <g class="lr-ticks"><circle r="92"></circle></g>
+        <path class="lr-cap" d="M0 -100 L3 -95 L0 -90 L-3 -95Z"></path>
+      </svg>
+      <span class="lens-label">Time lens</span>
+    </div>
+    <div class="dial-tip" id="dialTip" aria-hidden="true" hidden></div>
+  </section>
+
+  <!-- ============================ MARQUEE ============================ -->
+  <div class="marquee" aria-hidden="true">
+    <div class="mq-row mq-a"><div class="mq-track" id="mqA"></div></div>
+    <div class="mq-row mq-b"><div class="mq-track" id="mqB"></div></div>
+  </div>
+
+  <!-- ============================ ORIGIN ============================= -->
+  <section class="origin" id="origin" aria-labelledby="originTitle">
+    <div class="wrap">
+      <header class="sec-head sec-head-split" data-reveal>
+        <div>
+          <p class="eyebrow">Before silicon</p>
+          <h2 class="h2" id="originTitle">Every track has an ancestor.</h2>
+        </div>
+        <p class="lead">Each of Yugantra's four competition tracks starts from an idea this subcontinent had long before the machine. One of them was worked out here in Kerala. All four run live below.</p>
+      </header>
+
+      <ol class="lineage">
+        <li class="lin" data-reveal>
+          <p class="lin-when">c. 200 BCE</p>
+          <h3 class="lin-who">Pingala</h3>
+          <p class="lin-what">The <em>Chandas Shastra</em> lists every metre as a string of light and heavy syllables, row by row. That's binary counting in all but name.</p>
+          <div class="ro" id="roPingala" aria-hidden="true"></div>
+          <button class="lin-track" type="button" data-track="krita"></button>
+        </li>
+        <li class="lin" data-reveal>
+          <p class="lin-when">1st–3rd century CE</p>
+          <h3 class="lin-who">The Arthashastra</h3>
+          <p class="lin-what">A treatise on statecraft, economic policy and trade, attributed to Kautilya. Business thinking, written down.</p>
+          <div class="ro" id="roArtha" aria-hidden="true"></div>
+          <button class="lin-track" type="button" data-track="treta"></button>
+        </li>
+        <li class="lin" data-reveal>
+          <p class="lin-when">c. 600 CE</p>
+          <h3 class="lin-who">Chaturanga</h3>
+          <p class="lin-what">A war game from Gupta-era India: an army of four divisions on an uncheckered 8 × 8 board, and the ancestor of chess.</p>
+          <div class="ro" id="roChaturanga" aria-hidden="true"></div>
+          <button class="lin-track" type="button" data-track="dvapara"></button>
+        </li>
+        <li class="lin" data-reveal>
+          <p class="lin-when">683 CE · Kerala</p>
+          <h3 class="lin-who">Katapayadi</h3>
+          <p class="lin-what">Kerala astronomers wrote numbers as words: each consonant stands for a digit, and the digits are read backwards. A code you can remember, centuries before passwords.</p>
+          <div class="ro" id="roKatapayadi" aria-hidden="true"></div>
+          <button class="lin-track" type="button" data-track="kali"></button>
+        </li>
+      </ol>
+
+      <div class="you" data-reveal>
+        <div class="you-head">
+          <p class="lin-when">2026 CE</p>
+          <h3 class="lin-who">You</h3>
+          <p class="lin-what">The fifth line is yours. Pick a track.</p>
+          <button class="lin-track" type="button" data-track="yugantra"></button>
+        </div>
+        <div class="ro term" id="roYou" aria-hidden="true"></div>
+        <div class="you-cta">
+          <a class="btn btn-gold" data-register href="#events">Register</a>
+          <a class="btn" href="#events">All <span data-bind="eventCount">14</span> events</a>
+        </div>
+      </div>
+
+      <dl class="stats" id="stats" data-reveal></dl>
+    </div>
+  </section>
+
+  <!-- ============================= AGES ============================== -->
+  <section class="ages" id="ages" aria-labelledby="agesTitle">
+    <div class="ages-pin">
+      <div class="wrap ages-top">
+        <p class="eyebrow" id="agesTitle">Four tracks, four ages · 4 : 3 : 2 : 1</p>
+        <p class="ages-note">Each track is an age. Krita, Treta, Dvapara and Kali are named after the throws of a die (four, three, two, one), and their lengths keep that ratio. Scroll to run a whole Mahayuga through the fest.</p>
+      </div>
+      <div class="wrap ages-body">
+        <div class="ages-stages" id="agesStages"></div>
+      </div>
+      <div class="wrap ages-foot">
+        <div class="ages-counter">
+          <span class="k" id="agesCounterLabel">Years left in this Mahayuga</span>
+          <span class="v" id="agesCounter">43,20,000</span>
+        </div>
+        <div class="tl" id="timeline"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ EVENTS ============================= -->
+  <section class="events" id="events" aria-labelledby="eventsTitle">
+    <div class="wrap">
+      <header class="sec-head sec-head-split" data-reveal>
+        <div>
+          <p class="eyebrow">Events · the instruments</p>
+          <h2 class="h2 countdown-h" id="eventsTitle"></h2>
+        </div>
+        <p class="lead" id="eventsLead"></p>
+      </header>
+      <div class="filters" id="filters" role="group" aria-label="Filter events by track"></div>
+      <div class="ev-layout">
+        <aside class="ev-aside" aria-label="The dial and how to read a symbol">
+          <div class="ev-sticky">
+            <div class="dial-slot" id="dialSlot" aria-hidden="true"><span class="slot-hint">Point at an event</span></div>
+            <p class="slot-cap" id="slotCap" aria-live="polite"></p>
+            <div class="legend" id="legend"></div>
+          </div>
+        </aside>
+        <div class="ev-grid" id="evGrid"></div>
+      </div>
+    </div>
+  </section>
+
+  <dialog class="dlg" id="evDialog" aria-labelledby="dlgTitle">
+    <div class="dlg-in">
+      <button class="dlg-x" id="dlgClose" type="button" aria-label="Close event details">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5 19 19M19 5 5 19"></path></svg>
+      </button>
+      <div class="dlg-head">
+        <div class="dlg-glyph" id="dlgGlyph" aria-hidden="true"></div>
+        <div>
+          <p class="eyebrow" id="dlgEra"></p>
+          <h3 class="dlg-title" id="dlgTitle"></h3>
+          <p class="dlg-meaning" id="dlgMeaning"></p>
+        </div>
+      </div>
+      <p class="dlg-blurb" id="dlgBlurb"></p>
+      <dl class="dlg-facts" id="dlgFacts"></dl>
+      <h4 class="dlg-h" id="dlgH">Included</h4>
+      <ul class="dlg-rules" id="dlgRules"></ul>
+      <div class="dlg-cta" id="dlgCta"></div>
+    </div>
+  </dialog>
+
+  <!-- =========================== SCHEDULE ============================ -->
+  <section class="schedule" id="schedule" aria-labelledby="schedTitle">
+    <div class="wrap">
+      <header class="sec-head sec-head-split" data-reveal>
+        <div>
+          <p class="eyebrow">Schedule</p>
+          <h2 class="h2" id="schedTitle"><span data-bind="dayWord">Three</span> days, sixty ghatis each.</h2>
+        </div>
+        <p class="lead">Every slot is shown in clock time and in ghatis from 06:00 IST, the way a traditional day was counted. <span class="prov" id="provNote">Timings are provisional; the final running order is announced soon.</span></p>
+      </header>
+      <div class="ribbon-wrap" data-reveal><div class="ribbon" id="ribbon"></div></div>
+      <div class="tabs" id="dayTabs" role="tablist" aria-label="Festival days"></div>
+      <div id="dayPanels"></div>
+    </div>
+  </section>
+
+  <!-- ============================== STAGE ============================== -->
+  <section class="after" id="stage" aria-labelledby="afterTitle">
+    <div class="wrap">
+      <header class="sec-head" data-reveal>
+        <p class="eyebrow">Band competition</p>
+        <h2 class="after-title" id="afterTitle"><span>The</span> <span>Stage</span></h2>
+        <p class="lead" id="stageLead"></p>
+      </header>
+      <div class="plates" id="plates"></div>
+    </div>
+  </section>
+
+  <!-- ============================ PARTNERS =========================== -->
+  <section class="partners" id="partners" aria-labelledby="partnersTitle">
+    <div class="wrap">
+      <header class="sec-head sec-head-split" data-reveal>
+        <div>
+          <p class="eyebrow">Partners</p>
+          <h2 class="h2" id="partnersTitle">Patrons of the next age.</h2>
+        </div>
+        <p class="lead">Put your name on a track, an event or the whole fest. Every slot below is open for 2026.</p>
+      </header>
+      <div class="assoc" id="assoc" data-reveal></div>
+      <div class="tiers" id="tiers"></div>
+      <div class="partner-cta" data-reveal>
+        <p>Write to <b class="mono" data-bind="email"></b></p>
+        <button class="btn" type="button" data-copy-email>Copy email</button>
+        <a class="btn btn-gold" id="deckLink" href="#partners">Partner deck</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================== FAQ ============================= -->
+  <section class="faq" id="faq" aria-labelledby="faqTitle">
+    <div class="wrap faq-grid">
+      <header class="sec-head" data-reveal>
+        <p class="eyebrow">FAQ</p>
+        <h2 class="h2" id="faqTitle">Before you ask.</h2>
+      </header>
+      <div class="faq-list" id="faqList"></div>
+    </div>
+  </section>
+</main>
+
+<!-- ============================== FOOTER ============================= -->
+<footer class="foot" id="contact">
+  <div class="wrap foot-grid">
+    <div>
+      <p class="eyebrow">Write to us</p>
+      <p class="foot-mail"><span class="mono" data-bind="email"></span></p>
+      <button class="btn btn-sm" type="button" data-copy-email>Copy email</button>
+    </div>
+    <div>
+      <p class="eyebrow">Follow</p>
+      <ul class="foot-links" id="socials"></ul>
+    </div>
+    <div>
+      <p class="eyebrow">Where</p>
+      <p><span data-bind="venue"></span></p>
+    </div>
+    <div>
+      <p class="eyebrow">When, in three calendars</p>
+      <p class="foot-cal"><span data-bind="dateLabel"></span><br><span>Kollam Era <span data-bind="kollamEra"></span></span><br><span class="mono" id="isoDate"></span></p>
+    </div>
+  </div>
+  <div class="bigmark" id="bigmark" aria-hidden="true">
+    <span class="bm-base">YUGANTRA</span><span class="bm-lit">YUGANTRA</span>
+  </div>
+  <div class="wrap foot-base">
+    <span>© <span data-bind="edition"></span> Yugantra</span>
+    <span>Made in Kerala for the next yuga</span>
+    <a href="#top">Back to the beginning ↑</a>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<!--@/BODY-->
+<script src="assets/js/content.js"></script>
+<script src="assets/js/dial.js"></script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>
