@@ -3,7 +3,7 @@
  * Same-origin files are served cache-first and refreshed in the background;
  * Google Fonts are cached the first time they load. Bump VERSION on deploy.
  */
-const VERSION = 'yugantra-2026-v1';
+const VERSION = 'yugantra-2026-v2';
 const CORE = [
   './',
   'index.html',

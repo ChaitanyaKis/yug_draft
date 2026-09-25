@@ -370,6 +370,8 @@
     uniform vec2 uPtr;    // the light: pointer position in dial units (y down)
     uniform float uTexel; // one texel of the dial texture, in dial units
     uniform float uRelief;
+    uniform vec3 uSky;    // horizon light, set by the track being read
+    uniform float uNight; // 0 day → 1 night (18:00–06:00 IST)
     uniform sampler2D uTexA;
     uniform sampler2D uTexF;
 
@@ -469,19 +471,32 @@
     float bandLo(float b){ return b < 0.5 ? 0.0 : b < 1.5 ? 0.2 : b < 2.5 ? 0.36 : b < 3.5 ? 0.53 : b < 4.5 ? 0.70 : 0.86; }
     float bandHi(float b){ return b < 0.5 ? 0.2 : b < 1.5 ? 0.36 : b < 2.5 ? 0.53 : b < 3.5 ? 0.70 : b < 4.5 ? 0.86 : 1.0; }
 
-    // Boot: each ring is swept on clockwise from 12 o'clock, centre first.
-    float bootLocal(float b){ return clamp(uBoot * 6.6 - b, 0.0, 1.0); }
-    float bootMask(vec2 q, float b){
-      if (uBoot >= 0.999) return 1.0;
-      float a = mod(atan(q.y, q.x) + 1.5707963, TAU) / TAU;
-      return 1.0 - smoothstep(bootLocal(b) - 0.012, bootLocal(b), a);
+    // Boot: the grooves are cut but empty; molten gold runs into each ring
+    // clockwise from 12 o'clock, centre first, and cools to brass behind the front.
+    float vnoise(vec2 p){
+      vec2 i = floor(p), f = fract(p);
+      f = f * f * (3.0 - 2.0 * f);
+      float n00 = hash12(i), n10 = hash12(i + vec2(1.0, 0.0)), n01 = hash12(i + vec2(0.0, 1.0)), n11 = hash12(i + vec2(1.0, 1.0));
+      return mix(mix(n00, n10, f.x), mix(n01, n11, f.x), f.y);
     }
-    float bootEdge(vec2 q, float b){
-      float l = bootLocal(b);
-      if (uBoot >= 0.999 || l <= 0.0 || l >= 1.0) return 0.0;
-      float a = mod(atan(q.y, q.x) + 1.5707963, TAU) / TAU;
-      float d = (l - a) * TAU * length(q);
-      return d < 0.0 ? 0.0 : exp(-d * 60.0);
+    // the metal's own heat ramp: brass → amber → white-hot
+    vec3 heatCol(float h){
+      vec3 c = mix(GOLDHI, vec3(1.0, 0.74, 0.38), smoothstep(0.0, 0.5, h));
+      return mix(c, vec3(1.0, 0.95, 0.84), smoothstep(0.5, 1.0, h));
+    }
+    vec3 pour(vec3 col, vec3 m, vec2 q, float b, float th){
+      if (uBoot >= 0.999) return col;
+      float lu = uBoot * 6.6 - b;                                    // how far this ring's front has run (turns)
+      float a = mod(th + 1.5707963, TAU) / TAU;
+      float wob = (vnoise(q * 14.0 + vec2(0.0, uTime * 2.2)) - 0.5) * 0.045;
+      float behind = lu - a + wob;                                   // > 0: the gold has reached this point
+      float filled = smoothstep(-0.006, 0.01, behind) * step(0.0, lu);
+      float heat = filled * exp(-max(behind, 0.0) * 1.8) * (1.0 - smoothstep(0.92, 0.999, uBoot));
+      float mask = clamp(m.r + m.g, 0.0, 1.0);
+      vec3 empty = EMERALD * m.b * 0.3 + GOLD * mask * 0.13;        // cut channels, no metal yet
+      vec3 hot = heatCol(heat) * mask * (1.0 + 2.6 * heat);
+      vec3 poured = mix(col, hot, heat * 0.9) + vec3(1.0, 0.62, 0.28) * heat * heat * 0.14; // the plate glows near the melt
+      return mix(empty * uHasTex, poured, filled);
     }
 
     // Everything the ancient dial shows at point q, which lies in band b.
@@ -508,10 +523,12 @@
       vec3 Lv = normalize(vec3(uPtr - q, 0.75));
       float lam = max(dot(N, Lv), 0.0);
       float spec = pow(max(dot(N, normalize(Lv + vec3(0.0, 0.0, 1.0))), 0.0), 56.0);
-      float lit = mix(1.0, 0.62 + 0.62 * lam, uRelief);
+      // by night the plate falls dark and the pointer's lamp is the light
+      float pool = exp(-dot(uPtr - q, uPtr - q) * 1.6);
+      float lit = mix(1.0, mix(0.62 + 0.62 * lam, 0.3 + 0.55 * lam + 0.7 * pool, uNight), uRelief);
       float hv = focusMask(q) * uHasTex;
       vec3 col = metal * (m.r * (0.5 + 0.55 * sheen + 0.9 * glint) + m.g * (0.72 + 0.5 * sheen + 0.6 * glint)) * lit;
-      col += GOLDHI * spec * clamp(m.r + m.g, 0.0, 1.0) * 0.75 * uRelief;
+      col += GOLDHI * spec * clamp(m.r + m.g, 0.0, 1.0) * (0.75 + 0.45 * uNight) * uRelief;
       col += EMERALD * m.b * (0.8 + 0.6 * sheen) * mix(1.0, 0.75 + 0.4 * lam, uRelief);
       col = col * (1.0 + 0.9 * hv) + GOLD * 0.1 * hv;
       if (b < 0.5) col += metal * glyphMix(q, w, aa) * (0.95 + 0.5 * glint) * step(0.5, uBoot * 6.6) * mix(1.0, 0.7 + 0.55 * max(normalize(vec3(uPtr - q, 0.75)).z, 0.0), uRelief);
@@ -519,9 +536,7 @@
         col += GOLDHI * hand(q, w, aa) * 0.9;
         col += GOLDHI * marker(q, aa) * uHasTex;
       }
-      col *= bootMask(q, b);
-      col += GOLDHI * bootEdge(q, b) * 0.9 * uHasTex;
-      return col;
+      return pour(col, m, q, b, th);
     }
     vec3 rx(vec3 v, float a){ float c = cos(a), s = sin(a); return vec3(v.x, c * v.y - s * v.z, s * v.y + c * v.z); }
     vec3 ry(vec3 v, float a){ float c = cos(a), s = sin(a); return vec3(c * v.x + s * v.z, v.y, -s * v.x + c * v.z); }
@@ -533,15 +548,18 @@
       float aa = 1.25 * uDpr / uRadius;
       float w = 1.9 * uDpr / uRadius;
 
-      // atmosphere
+      // atmosphere: the track's horizon light, and the fest's own clock (night after 18:00)
+      vec2 uv = gl_FragCoord.xy / uRes;
       float glow = exp(-r * r * 0.85);
-      vec3 col = BG + uTint * glow * 0.6;
+      vec3 col = mix(BG, BG * 0.45 + vec3(0.0, 0.004, 0.012), uNight) + uTint * glow * 0.6 * (1.0 - 0.5 * uNight);
+      col += uSky * pow(1.0 - uv.y, 2.4) * 0.85;
 
       // perfboard: the build surface every project starts on
       vec2 g = (px + vec2(0.0, uScroll * 0.12 * uDpr)) / (28.0 * uDpr);
       float pad = smoothstep(0.11, 0.0, length(fract(g) - 0.5));
       col += GOLD * pad * (0.035 + 0.05 * glow);
 
+      float coc = 0.0;
       if (uExplode < 0.002) {
         col += shadeDial(p, bandIndex(r), w, aa, 1.0 / uRadius) * uOpacity;
       } else {
@@ -549,6 +567,7 @@
         vec3 ro = rx(ry(vec3(0.0, 0.0, -2.4), -uTilt.y), -uTilt.x);
         vec3 rd = rx(ry(vec3(p, 2.4), -uTilt.y), -uTilt.x);
         vec3 acc = vec3(0.0);
+        float best = 0.0, zb = 0.0;
         for (int i = 0; i < 6; i++) {
           float b = float(i);
           float z = (b - 2.5) * 0.26 * uExplode;
@@ -557,9 +576,14 @@
           vec2 q = ro.xy + rd.xy * t;
           float rq = length(q);
           if (rq < bandLo(b) || rq >= bandHi(b)) continue;
-          acc += shadeDial(q, b, w * t, aa * t, t / uRadius) * (1.05 - 0.07 * b * uExplode);
+          vec3 cc = shadeDial(q, b, w * t, aa * t, t / uRadius) * (1.05 - 0.07 * b * uExplode);
+          acc += cc;
+          float lu = dot(cc, vec3(0.3, 0.5, 0.2));
+          if (lu > best) { best = lu; zb = z; }
         }
         col += acc * uOpacity;
+        // depth of field: the middle plates are in focus, the near and far ones soften
+        coc = uExplode * (best > 0.02 ? clamp(abs(zb) / 0.45, 0.0, 1.0) : 0.6);
       }
 
       // the time lens
@@ -589,12 +613,35 @@
         col += GOLD * exp(-pow((ld - LR) / (16.0 * uDpr), 2.0)) * 0.12 * uLensAmt;
       }
 
-      vec2 uv = gl_FragCoord.xy / uRes;
       col *= 1.0 - 0.42 * pow(length(uv - 0.5) * 1.3, 2.4);
       col += (hash12(px + fract(uTime * 7.0) * 97.0) - 0.5) * uGrain;
-      gl_FragColor = vec4(max(col, 0.0), 1.0);
+      gl_FragColor = vec4(max(col, 0.0), coc);
     }
   `;
+
+  /* Post: bloom on the gold, depth of field in the exploded view.
+     scene → ½ → ¼ → ⅛ (4-tap box downsamples), Gaussian blur at ¼ and ⅛, composite. */
+  const PVERT = 'attribute vec2 aPos; varying vec2 vUv; void main(){ vUv = aPos * 0.5 + 0.5; gl_Position = vec4(aPos, 0.0, 1.0); }';
+  const PDOWN = `precision mediump float; varying vec2 vUv; uniform sampler2D uTex; uniform vec2 uTexel;
+    void main(){
+      gl_FragColor = 0.25 * (texture2D(uTex, vUv + uTexel * vec2(-1.0, -1.0)) + texture2D(uTex, vUv + uTexel * vec2(1.0, -1.0))
+                          + texture2D(uTex, vUv + uTexel * vec2(-1.0, 1.0)) + texture2D(uTex, vUv + uTexel * vec2(1.0, 1.0)));
+    }`;
+  const PBLUR = `precision mediump float; varying vec2 vUv; uniform sampler2D uTex; uniform vec2 uDir;
+    void main(){
+      vec4 c = texture2D(uTex, vUv) * 0.2270270;
+      c += (texture2D(uTex, vUv + uDir * 1.3846154) + texture2D(uTex, vUv - uDir * 1.3846154)) * 0.3162162;
+      c += (texture2D(uTex, vUv + uDir * 3.2307692) + texture2D(uTex, vUv - uDir * 3.2307692)) * 0.0702703;
+      gl_FragColor = c;
+    }`;
+  const PCOMP = `precision mediump float; varying vec2 vUv; uniform sampler2D uScene; uniform sampler2D uB2; uniform sampler2D uB3; uniform float uBloom;
+    void main(){
+      vec4 s = texture2D(uScene, vUv);
+      vec3 b2 = texture2D(uB2, vUv).rgb, b3 = texture2D(uB3, vUv).rgb;
+      vec3 col = mix(s.rgb, b2, clamp(s.a, 0.0, 1.0));
+      vec3 glow = max(b2 - vec3(0.28), 0.0) * 0.55 + max(b3 - vec3(0.16), 0.0) * 0.85;
+      gl_FragColor = vec4(col + glow * uBloom, 1.0);
+    }`;
 
   function compile(gl, type, src) {
     const s = gl.createShader(type);
@@ -628,7 +675,7 @@
     }
 
     let prog, uni = {}, texA, texF, hasTex = 0, recipe = null, texSize = 0;
-    const NAMES = ['uRes', 'uDpr', 'uTime', 'uRadius', 'uOpacity', 'uShapeA', 'uShapeB', 'uShapeMix', 'uLight', 'uHand', 'uLensAmt', 'uGrain', 'uHasTex', 'uScroll', 'uFocusA', 'uFocusB', 'uFocusAmt', 'uN', 'uBoot', 'uExplode', 'uTilt', 'uCenter', 'uRotA', 'uRotB', 'uLens', 'uTint', 'uTexA', 'uTexF', 'uPtr', 'uTexel', 'uRelief'];
+    const NAMES = ['uRes', 'uDpr', 'uTime', 'uRadius', 'uOpacity', 'uShapeA', 'uShapeB', 'uShapeMix', 'uLight', 'uHand', 'uLensAmt', 'uGrain', 'uHasTex', 'uScroll', 'uFocusA', 'uFocusB', 'uFocusAmt', 'uN', 'uBoot', 'uExplode', 'uTilt', 'uCenter', 'uRotA', 'uRotB', 'uLens', 'uTint', 'uTexA', 'uTexF', 'uPtr', 'uTexel', 'uRelief', 'uSky', 'uNight'];
 
     function makeTex() {
       const t = gl.createTexture();
@@ -667,6 +714,67 @@
       gl.uniform1i(uni.uTexA, 0);
       gl.uniform1i(uni.uTexF, 1);
       if (recipe) paintNow(recipe.size, recipe.data);
+      initPost();
+    }
+
+    // --- post chain
+    let post = null;
+    function link(vs, fs, names) {
+      const pr = gl.createProgram();
+      gl.attachShader(pr, compile(gl, gl.VERTEX_SHADER, vs));
+      gl.attachShader(pr, compile(gl, gl.FRAGMENT_SHADER, fs));
+      gl.bindAttribLocation(pr, 0, 'aPos');
+      gl.linkProgram(pr);
+      if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) throw new Error('Post link failed: ' + gl.getProgramInfoLog(pr));
+      const u = {};
+      names.forEach((n) => { u[n] = gl.getUniformLocation(pr, n); });
+      return { pr, u };
+    }
+    function target(w, h) {
+      const tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      const fb = gl.createFramebuffer();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+      const ok = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      if (!ok) { gl.deleteFramebuffer(fb); gl.deleteTexture(tex); return null; }
+      return { tex, fb, w, h };
+    }
+    function initPost() {
+      try {
+        post = {
+          down: link(PVERT, PDOWN, ['uTex', 'uTexel']),
+          blur: link(PVERT, PBLUR, ['uTex', 'uDir']),
+          comp: link(PVERT, PCOMP, ['uScene', 'uB2', 'uB3', 'uBloom']),
+          T: null, size: ''
+        };
+      } catch (err) { post = null; }
+      gl.useProgram(prog);
+    }
+    function sizeTargets(W, H) {
+      if (!post) return;
+      const key = `${W}x${H}`;
+      if (post.size === key) return;
+      if (post.T) Object.values(post.T).forEach((t) => { gl.deleteFramebuffer(t.fb); gl.deleteTexture(t.tex); });
+      const q = (d) => [Math.max(1, Math.round(W / d)), Math.max(1, Math.round(H / d))];
+      const T = { scene: target(W, H), d1: target(...q(2)), d2: target(...q(4)), d2b: target(...q(4)), d3: target(...q(8)), d3b: target(...q(8)) };
+      if (Object.values(T).some((t) => !t)) { Object.values(T).forEach((t) => { if (t) { gl.deleteFramebuffer(t.fb); gl.deleteTexture(t.tex); } }); post = null; return; }
+      post.T = T; post.size = key;
+    }
+    function pass(p, src, dst, set) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, dst.fb);
+      gl.viewport(0, 0, dst.w, dst.h);
+      gl.useProgram(p.pr);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, src.tex);
+      gl.uniform1i(p.u.uTex, 0);
+      set(p.u);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
     }
 
     function paintNow(S, data) {
@@ -680,7 +788,7 @@
 
     let lost = false;
     canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); lost = true; });
-    canvas.addEventListener('webglcontextrestored', () => { lost = false; uni = {}; init(); });
+    canvas.addEventListener('webglcontextrestored', () => { lost = false; uni = {}; init(); if (post) post.size = ''; });
 
     return {
       /** Paint both dial textures from fest data; call after webfonts are ready. */
@@ -701,6 +809,11 @@
       render(s) {
         if (lost) return;
         const d = s.dpr;
+        const usePost = !!post && s.post !== false;
+        if (usePost) sizeTargets(canvas.width, canvas.height);
+        const T = usePost && post ? post.T : null;
+        gl.bindFramebuffer(gl.FRAMEBUFFER, T ? T.scene.fb : null);
+        gl.useProgram(prog);
         gl.viewport(0, 0, canvas.width, canvas.height);
         gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texA);
         gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, texF);
@@ -733,6 +846,25 @@
         gl.uniform2f(uni.uPtr, s.ptr ? s.ptr[0] : 0.8, s.ptr ? s.ptr[1] : -0.8);
         gl.uniform1f(uni.uTexel, texSize ? 1 / (0.4925 * texSize) : 0.001);
         gl.uniform1f(uni.uRelief, s.relief == null ? 1 : s.relief);
+        gl.uniform3f(uni.uSky, s.sky ? s.sky[0] : 0, s.sky ? s.sky[1] : 0, s.sky ? s.sky[2] : 0);
+        gl.uniform1f(uni.uNight, s.night || 0);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+        if (!T) return;
+        const { down, blur, comp } = post;
+        pass(down, T.scene, T.d1, (u) => gl.uniform2f(u.uTexel, 1 / T.scene.w, 1 / T.scene.h));
+        pass(down, T.d1, T.d2, (u) => gl.uniform2f(u.uTexel, 1 / T.d1.w, 1 / T.d1.h));
+        pass(down, T.d2, T.d3, (u) => gl.uniform2f(u.uTexel, 1 / T.d2.w, 1 / T.d2.h));
+        pass(blur, T.d2, T.d2b, (u) => gl.uniform2f(u.uDir, 1 / T.d2.w, 0));
+        pass(blur, T.d2b, T.d2, (u) => gl.uniform2f(u.uDir, 0, 1 / T.d2.h));
+        pass(blur, T.d3, T.d3b, (u) => gl.uniform2f(u.uDir, 1.5 / T.d3.w, 0));
+        pass(blur, T.d3b, T.d3, (u) => gl.uniform2f(u.uDir, 0, 1.5 / T.d3.h));
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        gl.useProgram(comp.pr);
+        gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, T.scene.tex); gl.uniform1i(comp.u.uScene, 0);
+        gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, T.d2.tex); gl.uniform1i(comp.u.uB2, 1);
+        gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, T.d3.tex); gl.uniform1i(comp.u.uB3, 2);
+        gl.uniform1f(comp.u.uBloom, s.bloom == null ? 1 : s.bloom);
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       }
     };

@@ -29,7 +29,7 @@ Nothing on the page is decoration. Every figure, tick, dot, ring, sound and moti
   - Hovering over a sector shows a tooltip, and clicking one opens the event.
 
 **Motion, all of it carrying data:**
-- **Boot.** The dial assembles ring by ring while a boot log reads the data: tracks, events, schedule, prizes. The Mahayuga counter runs down from 43,20,000 to 2026.
+- **Boot, poured.** The grooves start cut but empty. Molten gold runs into each ring clockwise from 12 o'clock, centre first, with a liquid front, and cools from white-hot through amber to brass. Meanwhile a boot log reads the data (tracks, events, schedule, prizes) and the Mahayuga counter runs down from 43,20,000 to 2026.
 - **Exploded view.** As you leave the hero, the dial tilts into 3D and its rings separate into layers, then reassemble.
 - **Time lens.** The same dial as data: event ids, binary indexes, prizes in hex, and the schedule as a Gantt ring.
 - **Self-drawing symbols.** Each event symbol draws itself in order: frame (track), ticks (one per hour; a dashed ring means TBA), dots (team size), then the centre pictogram (the challenge).
@@ -74,6 +74,16 @@ Nothing on the page is decoration. Every figure, tick, dot, ring, sound and moti
   - A soft drum marks every hour something is on (the rim's cam, made audible), over a synthesised tanpura (Pa–Sa–Sa–Sa, Karplus–Strong).
   - A playhead crosses the ribbon, the sounding sessions light up, the dial turns to each event, its hand follows the time of day, and the caption names the note.
 - **Engraved brass.** The dial is lit like relief metal. Normals come from the engraving masks, and the pointer is a lamp held over the plate. On phones the lamp follows the tilt, or slowly orbits.
+- **Glow and depth.** Bloom on the gold highlights. In the exploded 3D view there is depth of field: the middle plates stay sharp and the near and far ones soften.
+- **The page's light follows the track.** While the tracks are read, a horizon light shifts from Krita's golden dawn through Treta bronze and Dvapara emerald to Kali's burgundy dusk.
+- **Night by the fest's clock.** From ghati 30 (18:00 IST) to 06:00 the site turns to night: the plate falls dark and the pointer's lamp becomes the light. Override with `?night=1`, `?night=0` or the terminal's `night` command.
+- **Kolam dividers.** Four sikku kolams, each one unbroken line looped around a dot grid. They're generated as mirror curves (mirror layouts are tried until the line closes as a single loop) and draw themselves as you reach them. The dot counts are data:
+  - 24 points for the hackathon's hours;
+  - 18 for the sessions, in 3 rows for 3 days;
+  - 11 for the partner slots;
+  - 14 for the events.
+- **Foil cards.** Event cards tilt toward the pointer with a gold-foil sheen, and their symbol shifts in parallax.
+- **Malayalam numerals.** Sections, the rail and the watermarks are numbered ൧–൧൦. The traditional countdown units (divasa, ghati, pala, vipala) roll in Malayalam digits, and the footer gives the Kollam Era as ൧൨൦൨.
 - **Feel.** Wheel scrolling glides while keeping the native scroll position, so sticky elements, anchors and the keyboard behave normally. Section headings rise out of a mask word by word, buttons lean toward the pointer, and nav labels decode from binary.
 
 ## Structure
@@ -152,8 +162,9 @@ The site is a static folder:
   - Textures are sampled with explicit gradients (`textureGrad`), so there are no seams where the rotating bands meet. Type stays sharp in motion and in the 3D view, with 16× anisotropic filtering.
   - Scrolling never lowers the resolution. Only quiet frames (not scrolling, not in the 3D view) are timed. The dial steps down if the GPU can't hold about 33 fps and steps back up when it can.
   - The canvas is sized to the large viewport (`100lvh`), so mobile toolbars sliding in and out don't resize or blur it.
+- **Post-processing.** The scene renders to a framebuffer, with the depth-of-field amount in alpha. It's box-downsampled to ½, ¼ and ⅛, Gaussian-blurred at ¼ and ⅛, then composited with bloom. If a framebuffer can't be created, it falls back to direct rendering.
 - **Performance.**
-  - One full-screen shader. Every layout read for a frame happens first, and style writes only happen when a value changes, so scrolling doesn't force extra layouts.
+  - One full-screen shader, plus the small post passes. Every layout read for a frame happens first, and style writes only happen when a value changes, so scrolling doesn't force extra layouts.
   - The exploded 3D path only runs while it's visible.
 - **Accessibility.**
   - Skip link, visible focus, and a real `<dialog>` that closes with Escape.

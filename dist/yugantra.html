@@ -1607,6 +1607,43 @@ html:not(.ready) .rail, html.dlg-open .rail, html.lock .rail { opacity: 0; point
 .my-s .fig { margin-right: 6px; vertical-align: -2px; }
 .play-cap .pc-q { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-2); }
 
+/* ---------- night (18:00–06:00 IST) ---------- */
+body { transition: background-color 2s ease; }
+html.night body { background-color: #020b08; }
+html.night { --panel: rgba(12, 28, 24, 0.5); }
+html.night .nav.scrolled { background-color: rgba(2, 10, 8, 0.86); }
+
+/* ---------- kolam dividers ---------- */
+.kolam { position: relative; z-index: 1; margin: 0; display: grid; justify-items: center; gap: 12px; padding: clamp(8px, 2vw, 20px) var(--gutter); }
+.kolam svg { width: min(100%, calc(var(--cols) * 46px)); height: auto; overflow: visible; }
+.kolam path { fill: none; stroke: var(--gold); stroke-width: 0.07; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 3.6s cubic-bezier(0.45, 0, 0.2, 1) 0.35s; }
+.kolam .kd circle { fill: var(--gold-hi); opacity: 0; transition: opacity 0.5s var(--ease); transition-delay: calc(var(--k, 0) * 18ms); }
+.kolam.drawn path { stroke-dashoffset: 0; }
+.kolam.drawn .kd circle { opacity: 0.9; }
+.kolam figcaption { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-2); opacity: 0; transition: opacity 0.8s 2.6s; text-align: center; }
+.kolam.drawn figcaption { opacity: 0.8; }
+@media (prefers-reduced-motion: reduce) { .kolam path { stroke-dashoffset: 0; } .kolam .kd circle, .kolam figcaption { opacity: 0.85; } }
+
+/* ---------- Malayalam numerals ---------- */
+.sec-no { font-family: var(--f-ml); font-weight: 600; font-size: 15px; letter-spacing: 0; text-transform: none; color: var(--gold-hi); margin-right: -2px; }
+.sec-mark .smn { font-family: var(--f-ml); margin-right: 0.12em; font-size: 0.9em; }
+.rail a span b { font-family: var(--f-ml); font-weight: 400; letter-spacing: 0; color: var(--gold); margin-right: 4px; }
+.odo [lang="ml"], .odo i[lang="ml"] { font-family: var(--f-ml); }
+.ml-num { font-family: var(--f-ml); color: var(--gold-hi); }
+
+/* ---------- foil event cards ---------- */
+.ev[data-tilt] { transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); }
+.ev[data-tilt]:hover { transform: perspective(1000px) translateY(-3px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); }
+.ev .foil {
+  z-index: 1; mix-blend-mode: overlay; opacity: 0;
+  background:
+    radial-gradient(circle at var(--mx, 50%) var(--my, 40%), rgba(255, 244, 220, 0.3), transparent 42%),
+    linear-gradient(115deg, transparent 22%, rgba(216, 193, 154, 0.32) calc(var(--mx, 50%) - 11%), rgba(239, 226, 196, 0.5) var(--mx, 50%), rgba(163, 133, 96, 0.28) calc(var(--mx, 50%) + 11%), transparent 78%);
+}
+.ev.tilting .foil { opacity: 1; }
+.ev-glyph { transition: transform 0.6s var(--ease); }
+.ev.tilting .ev-glyph { transform: translate3d(calc(var(--px, 0) * 8px), calc(var(--py, 0) * 6px), 0); transition-duration: 0.15s; }
+
 </style>
 </head>
 <body>
@@ -1719,10 +1756,10 @@ html:not(.ready) .rail, html.dlg-open .rail, html.lock .rail { opacity: 0; point
           <span class="u"><b data-k="s">00</b><i>sec</i></span>
         </div>
         <div class="cd-row cd-vedic">
-          <span class="u"><b data-k="dv">00</b><i>divasa</i></span>
-          <span class="u"><b data-k="gh">00</b><i>ghati</i></span>
-          <span class="u"><b data-k="pa">00</b><i>pala</i></span>
-          <span class="u"><b data-k="vp">00</b><i>vipala</i></span>
+          <span class="u"><b data-k="dv" data-ml>00</b><i>divasa</i></span>
+          <span class="u"><b data-k="gh" data-ml>00</b><i>ghati</i></span>
+          <span class="u"><b data-k="pa" data-ml>00</b><i>pala</i></span>
+          <span class="u"><b data-k="vp" data-ml>00</b><i>vipala</i></span>
         </div>
       </div>
       <p class="dial-legend">
@@ -1913,6 +1950,7 @@ html:not(.ready) .rail, html.dlg-open .rail, html.lock .rail { opacity: 0; point
     </div>
   </dialog>
 
+  <figure class="kolam" data-kolam="spotlight" aria-hidden="true"></figure>
   <!-- =========================== SPOTLIGHT =========================== -->
   <section class="spot" id="spotlight" aria-labelledby="spotTitle">
     <span class="sec-mark" aria-hidden="true">24H</span>
@@ -1970,6 +2008,7 @@ html:not(.ready) .rail, html.dlg-open .rail, html.lock .rail { opacity: 0; point
     </div>
   </section>
 
+  <figure class="kolam" data-kolam="schedule" aria-hidden="true"></figure>
   <!-- =========================== SCHEDULE ============================ -->
   <section class="schedule" id="schedule" aria-labelledby="schedTitle">
     <span class="sec-mark" aria-hidden="true">TIME</span>
@@ -2010,6 +2049,7 @@ html:not(.ready) .rail, html.dlg-open .rail, html.lock .rail { opacity: 0; point
     </div>
   </section>
 
+  <figure class="kolam" data-kolam="partners" aria-hidden="true"></figure>
   <!-- ============================ PARTNERS =========================== -->
   <section class="partners" id="partners" aria-labelledby="partnersTitle">
     <span class="sec-mark" aria-hidden="true">PATRONS</span>
@@ -2042,6 +2082,7 @@ html:not(.ready) .rail, html.dlg-open .rail, html.lock .rail { opacity: 0; point
     </div>
   </section>
 
+  <figure class="kolam" data-kolam="reach" aria-hidden="true"></figure>
   <!-- ============================= CONTACT =========================== -->
   <section class="reach" id="reach" aria-labelledby="reachTitle">
     <span class="sec-mark" aria-hidden="true">REACH</span>
@@ -2775,6 +2816,8 @@ window.YUGANTRA = {
     uniform vec2 uPtr;    // the light: pointer position in dial units (y down)
     uniform float uTexel; // one texel of the dial texture, in dial units
     uniform float uRelief;
+    uniform vec3 uSky;    // horizon light, set by the track being read
+    uniform float uNight; // 0 day → 1 night (18:00–06:00 IST)
     uniform sampler2D uTexA;
     uniform sampler2D uTexF;
 
@@ -2874,19 +2917,32 @@ window.YUGANTRA = {
     float bandLo(float b){ return b < 0.5 ? 0.0 : b < 1.5 ? 0.2 : b < 2.5 ? 0.36 : b < 3.5 ? 0.53 : b < 4.5 ? 0.70 : 0.86; }
     float bandHi(float b){ return b < 0.5 ? 0.2 : b < 1.5 ? 0.36 : b < 2.5 ? 0.53 : b < 3.5 ? 0.70 : b < 4.5 ? 0.86 : 1.0; }
 
-    // Boot: each ring is swept on clockwise from 12 o'clock, centre first.
-    float bootLocal(float b){ return clamp(uBoot * 6.6 - b, 0.0, 1.0); }
-    float bootMask(vec2 q, float b){
-      if (uBoot >= 0.999) return 1.0;
-      float a = mod(atan(q.y, q.x) + 1.5707963, TAU) / TAU;
-      return 1.0 - smoothstep(bootLocal(b) - 0.012, bootLocal(b), a);
+    // Boot: the grooves are cut but empty; molten gold runs into each ring
+    // clockwise from 12 o'clock, centre first, and cools to brass behind the front.
+    float vnoise(vec2 p){
+      vec2 i = floor(p), f = fract(p);
+      f = f * f * (3.0 - 2.0 * f);
+      float n00 = hash12(i), n10 = hash12(i + vec2(1.0, 0.0)), n01 = hash12(i + vec2(0.0, 1.0)), n11 = hash12(i + vec2(1.0, 1.0));
+      return mix(mix(n00, n10, f.x), mix(n01, n11, f.x), f.y);
     }
-    float bootEdge(vec2 q, float b){
-      float l = bootLocal(b);
-      if (uBoot >= 0.999 || l <= 0.0 || l >= 1.0) return 0.0;
-      float a = mod(atan(q.y, q.x) + 1.5707963, TAU) / TAU;
-      float d = (l - a) * TAU * length(q);
-      return d < 0.0 ? 0.0 : exp(-d * 60.0);
+    // the metal's own heat ramp: brass → amber → white-hot
+    vec3 heatCol(float h){
+      vec3 c = mix(GOLDHI, vec3(1.0, 0.74, 0.38), smoothstep(0.0, 0.5, h));
+      return mix(c, vec3(1.0, 0.95, 0.84), smoothstep(0.5, 1.0, h));
+    }
+    vec3 pour(vec3 col, vec3 m, vec2 q, float b, float th){
+      if (uBoot >= 0.999) return col;
+      float lu = uBoot * 6.6 - b;                                    // how far this ring's front has run (turns)
+      float a = mod(th + 1.5707963, TAU) / TAU;
+      float wob = (vnoise(q * 14.0 + vec2(0.0, uTime * 2.2)) - 0.5) * 0.045;
+      float behind = lu - a + wob;                                   // > 0: the gold has reached this point
+      float filled = smoothstep(-0.006, 0.01, behind) * step(0.0, lu);
+      float heat = filled * exp(-max(behind, 0.0) * 1.8) * (1.0 - smoothstep(0.92, 0.999, uBoot));
+      float mask = clamp(m.r + m.g, 0.0, 1.0);
+      vec3 empty = EMERALD * m.b * 0.3 + GOLD * mask * 0.13;        // cut channels, no metal yet
+      vec3 hot = heatCol(heat) * mask * (1.0 + 2.6 * heat);
+      vec3 poured = mix(col, hot, heat * 0.9) + vec3(1.0, 0.62, 0.28) * heat * heat * 0.14; // the plate glows near the melt
+      return mix(empty * uHasTex, poured, filled);
     }
 
     // Everything the ancient dial shows at point q, which lies in band b.
@@ -2913,10 +2969,12 @@ window.YUGANTRA = {
       vec3 Lv = normalize(vec3(uPtr - q, 0.75));
       float lam = max(dot(N, Lv), 0.0);
       float spec = pow(max(dot(N, normalize(Lv + vec3(0.0, 0.0, 1.0))), 0.0), 56.0);
-      float lit = mix(1.0, 0.62 + 0.62 * lam, uRelief);
+      // by night the plate falls dark and the pointer's lamp is the light
+      float pool = exp(-dot(uPtr - q, uPtr - q) * 1.6);
+      float lit = mix(1.0, mix(0.62 + 0.62 * lam, 0.3 + 0.55 * lam + 0.7 * pool, uNight), uRelief);
       float hv = focusMask(q) * uHasTex;
       vec3 col = metal * (m.r * (0.5 + 0.55 * sheen + 0.9 * glint) + m.g * (0.72 + 0.5 * sheen + 0.6 * glint)) * lit;
-      col += GOLDHI * spec * clamp(m.r + m.g, 0.0, 1.0) * 0.75 * uRelief;
+      col += GOLDHI * spec * clamp(m.r + m.g, 0.0, 1.0) * (0.75 + 0.45 * uNight) * uRelief;
       col += EMERALD * m.b * (0.8 + 0.6 * sheen) * mix(1.0, 0.75 + 0.4 * lam, uRelief);
       col = col * (1.0 + 0.9 * hv) + GOLD * 0.1 * hv;
       if (b < 0.5) col += metal * glyphMix(q, w, aa) * (0.95 + 0.5 * glint) * step(0.5, uBoot * 6.6) * mix(1.0, 0.7 + 0.55 * max(normalize(vec3(uPtr - q, 0.75)).z, 0.0), uRelief);
@@ -2924,9 +2982,7 @@ window.YUGANTRA = {
         col += GOLDHI * hand(q, w, aa) * 0.9;
         col += GOLDHI * marker(q, aa) * uHasTex;
       }
-      col *= bootMask(q, b);
-      col += GOLDHI * bootEdge(q, b) * 0.9 * uHasTex;
-      return col;
+      return pour(col, m, q, b, th);
     }
     vec3 rx(vec3 v, float a){ float c = cos(a), s = sin(a); return vec3(v.x, c * v.y - s * v.z, s * v.y + c * v.z); }
     vec3 ry(vec3 v, float a){ float c = cos(a), s = sin(a); return vec3(c * v.x + s * v.z, v.y, -s * v.x + c * v.z); }
@@ -2938,15 +2994,18 @@ window.YUGANTRA = {
       float aa = 1.25 * uDpr / uRadius;
       float w = 1.9 * uDpr / uRadius;
 
-      // atmosphere
+      // atmosphere: the track's horizon light, and the fest's own clock (night after 18:00)
+      vec2 uv = gl_FragCoord.xy / uRes;
       float glow = exp(-r * r * 0.85);
-      vec3 col = BG + uTint * glow * 0.6;
+      vec3 col = mix(BG, BG * 0.45 + vec3(0.0, 0.004, 0.012), uNight) + uTint * glow * 0.6 * (1.0 - 0.5 * uNight);
+      col += uSky * pow(1.0 - uv.y, 2.4) * 0.85;
 
       // perfboard: the build surface every project starts on
       vec2 g = (px + vec2(0.0, uScroll * 0.12 * uDpr)) / (28.0 * uDpr);
       float pad = smoothstep(0.11, 0.0, length(fract(g) - 0.5));
       col += GOLD * pad * (0.035 + 0.05 * glow);
 
+      float coc = 0.0;
       if (uExplode < 0.002) {
         col += shadeDial(p, bandIndex(r), w, aa, 1.0 / uRadius) * uOpacity;
       } else {
@@ -2954,6 +3013,7 @@ window.YUGANTRA = {
         vec3 ro = rx(ry(vec3(0.0, 0.0, -2.4), -uTilt.y), -uTilt.x);
         vec3 rd = rx(ry(vec3(p, 2.4), -uTilt.y), -uTilt.x);
         vec3 acc = vec3(0.0);
+        float best = 0.0, zb = 0.0;
         for (int i = 0; i < 6; i++) {
           float b = float(i);
           float z = (b - 2.5) * 0.26 * uExplode;
@@ -2962,9 +3022,14 @@ window.YUGANTRA = {
           vec2 q = ro.xy + rd.xy * t;
           float rq = length(q);
           if (rq < bandLo(b) || rq >= bandHi(b)) continue;
-          acc += shadeDial(q, b, w * t, aa * t, t / uRadius) * (1.05 - 0.07 * b * uExplode);
+          vec3 cc = shadeDial(q, b, w * t, aa * t, t / uRadius) * (1.05 - 0.07 * b * uExplode);
+          acc += cc;
+          float lu = dot(cc, vec3(0.3, 0.5, 0.2));
+          if (lu > best) { best = lu; zb = z; }
         }
         col += acc * uOpacity;
+        // depth of field: the middle plates are in focus, the near and far ones soften
+        coc = uExplode * (best > 0.02 ? clamp(abs(zb) / 0.45, 0.0, 1.0) : 0.6);
       }
 
       // the time lens
@@ -2994,12 +3059,35 @@ window.YUGANTRA = {
         col += GOLD * exp(-pow((ld - LR) / (16.0 * uDpr), 2.0)) * 0.12 * uLensAmt;
       }
 
-      vec2 uv = gl_FragCoord.xy / uRes;
       col *= 1.0 - 0.42 * pow(length(uv - 0.5) * 1.3, 2.4);
       col += (hash12(px + fract(uTime * 7.0) * 97.0) - 0.5) * uGrain;
-      gl_FragColor = vec4(max(col, 0.0), 1.0);
+      gl_FragColor = vec4(max(col, 0.0), coc);
     }
   `;
+
+  /* Post: bloom on the gold, depth of field in the exploded view.
+     scene → ½ → ¼ → ⅛ (4-tap box downsamples), Gaussian blur at ¼ and ⅛, composite. */
+  const PVERT = 'attribute vec2 aPos; varying vec2 vUv; void main(){ vUv = aPos * 0.5 + 0.5; gl_Position = vec4(aPos, 0.0, 1.0); }';
+  const PDOWN = `precision mediump float; varying vec2 vUv; uniform sampler2D uTex; uniform vec2 uTexel;
+    void main(){
+      gl_FragColor = 0.25 * (texture2D(uTex, vUv + uTexel * vec2(-1.0, -1.0)) + texture2D(uTex, vUv + uTexel * vec2(1.0, -1.0))
+                          + texture2D(uTex, vUv + uTexel * vec2(-1.0, 1.0)) + texture2D(uTex, vUv + uTexel * vec2(1.0, 1.0)));
+    }`;
+  const PBLUR = `precision mediump float; varying vec2 vUv; uniform sampler2D uTex; uniform vec2 uDir;
+    void main(){
+      vec4 c = texture2D(uTex, vUv) * 0.2270270;
+      c += (texture2D(uTex, vUv + uDir * 1.3846154) + texture2D(uTex, vUv - uDir * 1.3846154)) * 0.3162162;
+      c += (texture2D(uTex, vUv + uDir * 3.2307692) + texture2D(uTex, vUv - uDir * 3.2307692)) * 0.0702703;
+      gl_FragColor = c;
+    }`;
+  const PCOMP = `precision mediump float; varying vec2 vUv; uniform sampler2D uScene; uniform sampler2D uB2; uniform sampler2D uB3; uniform float uBloom;
+    void main(){
+      vec4 s = texture2D(uScene, vUv);
+      vec3 b2 = texture2D(uB2, vUv).rgb, b3 = texture2D(uB3, vUv).rgb;
+      vec3 col = mix(s.rgb, b2, clamp(s.a, 0.0, 1.0));
+      vec3 glow = max(b2 - vec3(0.28), 0.0) * 0.55 + max(b3 - vec3(0.16), 0.0) * 0.85;
+      gl_FragColor = vec4(col + glow * uBloom, 1.0);
+    }`;
 
   function compile(gl, type, src) {
     const s = gl.createShader(type);
@@ -3033,7 +3121,7 @@ window.YUGANTRA = {
     }
 
     let prog, uni = {}, texA, texF, hasTex = 0, recipe = null, texSize = 0;
-    const NAMES = ['uRes', 'uDpr', 'uTime', 'uRadius', 'uOpacity', 'uShapeA', 'uShapeB', 'uShapeMix', 'uLight', 'uHand', 'uLensAmt', 'uGrain', 'uHasTex', 'uScroll', 'uFocusA', 'uFocusB', 'uFocusAmt', 'uN', 'uBoot', 'uExplode', 'uTilt', 'uCenter', 'uRotA', 'uRotB', 'uLens', 'uTint', 'uTexA', 'uTexF', 'uPtr', 'uTexel', 'uRelief'];
+    const NAMES = ['uRes', 'uDpr', 'uTime', 'uRadius', 'uOpacity', 'uShapeA', 'uShapeB', 'uShapeMix', 'uLight', 'uHand', 'uLensAmt', 'uGrain', 'uHasTex', 'uScroll', 'uFocusA', 'uFocusB', 'uFocusAmt', 'uN', 'uBoot', 'uExplode', 'uTilt', 'uCenter', 'uRotA', 'uRotB', 'uLens', 'uTint', 'uTexA', 'uTexF', 'uPtr', 'uTexel', 'uRelief', 'uSky', 'uNight'];
 
     function makeTex() {
       const t = gl.createTexture();
@@ -3072,6 +3160,67 @@ window.YUGANTRA = {
       gl.uniform1i(uni.uTexA, 0);
       gl.uniform1i(uni.uTexF, 1);
       if (recipe) paintNow(recipe.size, recipe.data);
+      initPost();
+    }
+
+    // --- post chain
+    let post = null;
+    function link(vs, fs, names) {
+      const pr = gl.createProgram();
+      gl.attachShader(pr, compile(gl, gl.VERTEX_SHADER, vs));
+      gl.attachShader(pr, compile(gl, gl.FRAGMENT_SHADER, fs));
+      gl.bindAttribLocation(pr, 0, 'aPos');
+      gl.linkProgram(pr);
+      if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) throw new Error('Post link failed: ' + gl.getProgramInfoLog(pr));
+      const u = {};
+      names.forEach((n) => { u[n] = gl.getUniformLocation(pr, n); });
+      return { pr, u };
+    }
+    function target(w, h) {
+      const tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      const fb = gl.createFramebuffer();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+      const ok = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      if (!ok) { gl.deleteFramebuffer(fb); gl.deleteTexture(tex); return null; }
+      return { tex, fb, w, h };
+    }
+    function initPost() {
+      try {
+        post = {
+          down: link(PVERT, PDOWN, ['uTex', 'uTexel']),
+          blur: link(PVERT, PBLUR, ['uTex', 'uDir']),
+          comp: link(PVERT, PCOMP, ['uScene', 'uB2', 'uB3', 'uBloom']),
+          T: null, size: ''
+        };
+      } catch (err) { post = null; }
+      gl.useProgram(prog);
+    }
+    function sizeTargets(W, H) {
+      if (!post) return;
+      const key = `${W}x${H}`;
+      if (post.size === key) return;
+      if (post.T) Object.values(post.T).forEach((t) => { gl.deleteFramebuffer(t.fb); gl.deleteTexture(t.tex); });
+      const q = (d) => [Math.max(1, Math.round(W / d)), Math.max(1, Math.round(H / d))];
+      const T = { scene: target(W, H), d1: target(...q(2)), d2: target(...q(4)), d2b: target(...q(4)), d3: target(...q(8)), d3b: target(...q(8)) };
+      if (Object.values(T).some((t) => !t)) { Object.values(T).forEach((t) => { if (t) { gl.deleteFramebuffer(t.fb); gl.deleteTexture(t.tex); } }); post = null; return; }
+      post.T = T; post.size = key;
+    }
+    function pass(p, src, dst, set) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, dst.fb);
+      gl.viewport(0, 0, dst.w, dst.h);
+      gl.useProgram(p.pr);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, src.tex);
+      gl.uniform1i(p.u.uTex, 0);
+      set(p.u);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
     }
 
     function paintNow(S, data) {
@@ -3085,7 +3234,7 @@ window.YUGANTRA = {
 
     let lost = false;
     canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); lost = true; });
-    canvas.addEventListener('webglcontextrestored', () => { lost = false; uni = {}; init(); });
+    canvas.addEventListener('webglcontextrestored', () => { lost = false; uni = {}; init(); if (post) post.size = ''; });
 
     return {
       /** Paint both dial textures from fest data; call after webfonts are ready. */
@@ -3106,6 +3255,11 @@ window.YUGANTRA = {
       render(s) {
         if (lost) return;
         const d = s.dpr;
+        const usePost = !!post && s.post !== false;
+        if (usePost) sizeTargets(canvas.width, canvas.height);
+        const T = usePost && post ? post.T : null;
+        gl.bindFramebuffer(gl.FRAMEBUFFER, T ? T.scene.fb : null);
+        gl.useProgram(prog);
         gl.viewport(0, 0, canvas.width, canvas.height);
         gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texA);
         gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, texF);
@@ -3138,6 +3292,25 @@ window.YUGANTRA = {
         gl.uniform2f(uni.uPtr, s.ptr ? s.ptr[0] : 0.8, s.ptr ? s.ptr[1] : -0.8);
         gl.uniform1f(uni.uTexel, texSize ? 1 / (0.4925 * texSize) : 0.001);
         gl.uniform1f(uni.uRelief, s.relief == null ? 1 : s.relief);
+        gl.uniform3f(uni.uSky, s.sky ? s.sky[0] : 0, s.sky ? s.sky[1] : 0, s.sky ? s.sky[2] : 0);
+        gl.uniform1f(uni.uNight, s.night || 0);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+        if (!T) return;
+        const { down, blur, comp } = post;
+        pass(down, T.scene, T.d1, (u) => gl.uniform2f(u.uTexel, 1 / T.scene.w, 1 / T.scene.h));
+        pass(down, T.d1, T.d2, (u) => gl.uniform2f(u.uTexel, 1 / T.d1.w, 1 / T.d1.h));
+        pass(down, T.d2, T.d3, (u) => gl.uniform2f(u.uTexel, 1 / T.d2.w, 1 / T.d2.h));
+        pass(blur, T.d2, T.d2b, (u) => gl.uniform2f(u.uDir, 1 / T.d2.w, 0));
+        pass(blur, T.d2b, T.d2, (u) => gl.uniform2f(u.uDir, 0, 1 / T.d2.h));
+        pass(blur, T.d3, T.d3b, (u) => gl.uniform2f(u.uDir, 1.5 / T.d3.w, 0));
+        pass(blur, T.d3b, T.d3, (u) => gl.uniform2f(u.uDir, 0, 1.5 / T.d3.h));
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        gl.useProgram(comp.pr);
+        gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, T.scene.tex); gl.uniform1i(comp.u.uScene, 0);
+        gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, T.d2.tex); gl.uniform1i(comp.u.uB2, 1);
+        gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, T.d3.tex); gl.uniform1i(comp.u.uB3, 2);
+        gl.uniform1f(comp.u.uBloom, s.bloom == null ? 1 : s.bloom);
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       }
     };
@@ -3327,12 +3500,15 @@ window.YUGANTRA = {
    * Odometer — digits roll like a mechanical counter                   *
    * ------------------------------------------------------------------ */
   const STRIP = '0123456789'.split('').map((d) => `<i>${d}</i>`).join('');
+  const ML = (n) => String(n).replace(/\d/g, (d) => String.fromCharCode(0x0d66 + Number(d)));
+  const STRIP_ML = '0123456789'.split('').map((d) => `<i lang="ml">${ML(d)}</i>`).join('');
   function odo(el, text) {
     const str = String(text);
     const shape = str.replace(/\d/g, '0');
     if (el._odo !== shape) {
+      const strip = el.hasAttribute('data-ml') ? STRIP_ML : STRIP;
       el.innerHTML = `<span class="sr">${esc(str)}</span>` + [...str].map((ch) => (/\d/.test(ch)
-        ? `<span class="odo-d" aria-hidden="true"><span class="odo-s">${STRIP}</span></span>`
+        ? `<span class="odo-d" aria-hidden="true"><span class="odo-s">${strip}</span></span>`
         : `<span class="odo-c" aria-hidden="true">${esc(ch)}</span>`)).join('');
       el._odo = shape;
       el.classList.add('odo');
@@ -3575,9 +3751,16 @@ window.YUGANTRA = {
     return ((((ist - 6 * 3600e3) % 864e5) + 864e5) % 864e5) / 864e5;
   }
   let lastGhatiText = '';
+  /* Night follows the fest's own clock: ghati 30 (18:00 IST) to ghati 60 (06:00).
+     ?night=1 / ?night=0 or the terminal's `night` command override it. */
+  const nightParam = new URLSearchParams(location.search).get('night');
+  let nightMode = nightParam === '1' ? 'on' : nightParam === '0' ? 'off' : 'auto';
+  const isNight = (frac) => (nightMode === 'auto' ? frac >= 0.5 : nightMode === 'on');
   function updateGhatiText(frac) {
     const g = frac * 60;
-    const txt = `${Math.floor(g)} gh ${Math.floor((g % 1) * 60)} pa`;
+    const night = isNight(frac);
+    root.classList.toggle('night', night);
+    const txt = `${Math.floor(g)} gh ${Math.floor((g % 1) * 60)} pa · ${night ? 'night' : 'day'}`;
     if (txt !== lastGhatiText) { lastGhatiText = txt; $('#ghatiNow').textContent = txt; }
   }
 
@@ -3860,12 +4043,13 @@ window.YUGANTRA = {
       <div class="lg-item"><svg class="lg-svg" viewBox="-22 -22 44 44" aria-hidden="true">${ICONS[sample.icon]}</svg><p><b>Centre</b> what you'll do (here: code)</p></div>`;
 
     $('#evGrid').innerHTML = D.events.map((ev) => `<div class="ev-cell" data-era="${ev.era}">
-      <button class="ev${ev.status === 'tbc' ? ' is-tbc' : ''}" type="button" data-open="${ev.id}" data-dial-ev="${ev.id}" data-era="${ev.era}" aria-haspopup="dialog" aria-label="${esc(ev.name)}, ${esc(AGE[ev.era].domain)} track${ev.status === 'tbc' ? ', to be confirmed' : ''}. Open details.">
+      <button data-tilt="soft" class="ev${ev.status === 'tbc' ? ' is-tbc' : ''}" type="button" data-open="${ev.id}" data-dial-ev="${ev.id}" data-era="${ev.era}" aria-haspopup="dialog" aria-label="${esc(ev.name)}, ${esc(AGE[ev.era].domain)} track${ev.status === 'tbc' ? ', to be confirmed' : ''}. Open details.">
         <span class="ev-top"><span class="era">${figSVG(AGE[ev.era].index)}${esc(AGE[ev.era].track)}</span><span>${ev.status === 'tbc' ? '<em class="tbc">To be confirmed</em>' : esc(whenLabel(ev))}</span></span>
         <span class="ev-glyph">${glyphSVG(ev)}</span>
         <span class="ev-name">${esc(ev.name)}</span>
         <span class="ev-format">${esc(ev.format)}</span>
         <span class="ev-foot">${footFor(ev)}<span class="ev-team">Team ${esc(ev.teamLabel)}<br>${esc(durShort(ev))}</span></span>
+        <span class="foil" aria-hidden="true"></span>
       </button>${pickBtn(ev)}</div>`).join('');
     drawOnView($('#evGrid'));
 
@@ -4903,6 +5087,12 @@ window.YUGANTRA = {
     } },
     play: { a: '', d: 'hear the whole fest as music', run() { closeTerm(); setTimeout(() => { $('#schedule').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' }); FestSound.start(); }, 80); } },
     sound: { a: 'on|off', d: 'interface sounds', run(q) { setSound(!/off|0|no/i.test(q || '') && (q ? true : !Sound.on)); tPrint(`sound ${Sound.on ? 'on' : 'off'}`); } },
+    night: { a: 'on|off|auto', d: 'the site\'s night palette', run(q) {
+      const v = (q || '').toLowerCase();
+      nightMode = v === 'on' || v === 'off' ? v : v === 'auto' ? 'auto' : (root.classList.contains('night') ? 'off' : 'on');
+      updateGhatiText(ghatiFraction(Date.now()));
+      tPrint(`night ${nightMode}${nightMode === 'auto' ? ' · follows 18:00–06:00 IST' : ''}`);
+    } },
     binary: { a: '<text>', d: 'text as 8-bit binary', run(q) {
       const t = q || site.name.toUpperCase();
       tPrint(T([...t].slice(0, 32).map((ch) => ch.charCodeAt(0).toString(2).padStart(8, '0')).join(' ')));
@@ -5152,9 +5342,98 @@ window.YUGANTRA = {
     return { start, stop, frame, get playing() { return playing; }, focus: () => (playing ? focusIdx : -1), hand: () => (playing ? handA : null) };
   })();
 
+  /* ------------------------------------------------------------------ *
+   * Kolam dividers. A sikku kolam is one unbroken line looped around a   *
+   * grid of dots. Built as a mirror curve: the line runs diagonally      *
+   * between the grid's edges and bounces off "mirrors"; mirror layouts   *
+   * are tried until the line closes as a single loop. Each divider's     *
+   * dot count comes from the fest's data.                                *
+   * ------------------------------------------------------------------ */
+  function kolamLoops(cols, rows, seed) {
+    let h = 2166136261;
+    for (const c of String(seed)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
+    const rnd = () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return (h >>> 0) / 4294967296; };
+    const W = 2 * cols, Hh = 2 * rows, need = 4 * cols * rows;
+    const key = (p, q) => { const a = p[0] * 1000 + p[1], b = q[0] * 1000 + q[1]; return a < b ? a * 1e6 + b : b * 1e6 + a; };
+    let best = null;
+    for (let attempt = 0; attempt < 800; attempt++) {
+      const mirror = new Set();
+      for (let x = 2; x < W; x += 2) for (let y = 1; y < Hh; y += 2) if (rnd() < 0.34) mirror.add(x * 1000 + y);
+      for (let y = 2; y < Hh; y += 2) for (let x = 1; x < W; x += 2) if (rnd() < 0.34) mirror.add(x * 1000 + y);
+      const isM = (x, y) => x === 0 || x === W || y === 0 || y === Hh || mirror.has(x * 1000 + y);
+      const seen = new Set(), loops = [];
+      for (let cx = 0; cx < cols; cx++) for (let cy = 0; cy < rows; cy++) for (const d0 of [[1, 1], [1, -1]]) {
+        let p = [2 * cx, 2 * cy + 1];
+        if (seen.has(key(p, [p[0] + d0[0], p[1] + d0[1]]))) continue;
+        const dir = d0.slice(), pts = [];
+        for (let k = 0; k <= need; k++) {
+          const q = [p[0] + dir[0], p[1] + dir[1]], sk = key(p, q);
+          if (seen.has(sk)) break;
+          seen.add(sk); pts.push(q);
+          if (isM(q[0], q[1])) { if (q[0] % 2 === 0) dir[0] = -dir[0]; else dir[1] = -dir[1]; }
+          p = q;
+        }
+        loops.push(pts);
+      }
+      if (!best || loops.length < best.length) best = loops;
+      if (loops.length === 1) break;
+    }
+    return best;
+  }
+  function kolamSVG(cols, rows, seed) {
+    const loops = kolamLoops(cols, rows, seed);
+    const mid = (a, b) => `${(a[0] + b[0]) / 2} ${(a[1] + b[1]) / 2}`;
+    const d = loops.map((P) => {
+      const n = P.length;
+      let path = `M${mid(P[n - 1], P[0])}`;
+      for (let i = 0; i < n; i++) path += `Q${P[i][0]} ${P[i][1]} ${mid(P[i], P[(i + 1) % n])}`;
+      return `${path}Z`;
+    });
+    let dots = '';
+    for (let x = 0; x < cols; x++) for (let y = 0; y < rows; y++) dots += `<circle cx="${2 * x + 1}" cy="${2 * y + 1}" r="0.2" style="--k:${x + y * cols}"/>`;
+    return { svg: `<svg viewBox="-0.6 -0.6 ${2 * cols + 1.2} ${2 * rows + 1.2}" style="--cols:${cols}">${d.map((x) => `<path d="${x}" pathLength="1"/>`).join('')}<g class="kd">${dots}</g></svg>`, single: loops.length === 1 };
+  }
+  function renderKolams() {
+    const hk = EVENTS.hackathon;
+    const partnerSlots = D.partners.reduce((a, t) => a + t.slots, 0);
+    const spec = {
+      spotlight: hk && hk.hours % 2 === 0 ? [hk.hours / 2, 2, `${hk.hours} points, one for each hour of the ${hk.name}`] : [7, 2, `${D.events.length} points, one for each event`],
+      schedule: slotCount % days === 0 ? [slotCount / days, days, `${slotCount} points, one for each session, in ${days} rows for ${days} days`] : [6, days, `${days} rows, one for each day`],
+      partners: [partnerSlots, 1, `${partnerSlots} points, one for each partner slot`],
+      reach: D.events.length % 2 === 0 ? [D.events.length / 2, 2, `${D.events.length} points, one for each event`] : [D.events.length, 1, `${D.events.length} points, one for each event`]
+    };
+    const io = new IntersectionObserver((en) => en.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('drawn'); io.unobserve(e.target); } }), { threshold: 0.5 });
+    $$('[data-kolam]').forEach((fig) => {
+      const sp = spec[fig.dataset.kolam];
+      if (!sp) { fig.remove(); return; }
+      const k = kolamSVG(sp[0], sp[1], `yugantra-${fig.dataset.kolam}`);
+      fig.innerHTML = `${k.svg}<figcaption>Kolam · ${esc(sp[2])}${k.single ? ' · one unbroken line' : ''}</figcaption>`;
+      if (reduced) fig.classList.add('drawn'); else io.observe(fig);
+    });
+  }
+
+  /* Malayalam numerals: every section, the rail and the watermarks are numbered ൧ to ൧൦. */
+  function initNumerals() {
+    const order = ['origin', 'ages', 'events', 'spotlight', 'passes', 'schedule', 'stage', 'partners', 'faq', 'reach'];
+    order.forEach((id, i) => {
+      const sec = document.getElementById(id);
+      if (!sec) return;
+      const eb = sec.querySelector('.eyebrow');
+      if (eb && !eb.querySelector('.sec-no')) eb.insertAdjacentHTML('afterbegin', `<span class="sec-no" lang="ml" aria-hidden="true">${ML(i + 1)}</span>`);
+      const mk = $(':scope > .sec-mark', sec);
+      if (mk && !mk.querySelector('.smn')) mk.innerHTML = `<span class="smn" lang="ml">${ML(i + 1)}</span>${esc(mk.textContent)}`;
+    });
+    $$('#rail a').forEach((a) => {
+      const sp = a.querySelector('span');
+      if (sp && !sp.querySelector('b')) sp.insertAdjacentHTML('afterbegin', `<b lang="ml">${ML(order.indexOf(a.dataset.sec) + 1)}</b> `);
+    });
+    const ke = $('.foot-cal [data-bind="kollamEra"]');
+    if (ke) ke.insertAdjacentHTML('afterend', ` <span class="ml-num" lang="ml">(${ML(site.kollamEra)})</span>`);
+  }
+
   /* cards you can pick up: goodies and the pass tilt toward the pointer */
   let tiltEl = null;
-  const resetTilt = (el) => { el.classList.remove('tilting'); ['--rx', '--ry'].forEach((p) => el.style.removeProperty(p)); };
+  const resetTilt = (el) => { el.classList.remove('tilting'); ['--rx', '--ry', '--px', '--py'].forEach((p) => el.style.removeProperty(p)); };
   document.addEventListener('pointermove', (e) => {
     if (e.pointerType === 'touch' || reduced) return;
     const el = e.target.closest ? e.target.closest('[data-tilt]') : null;
@@ -5164,8 +5443,11 @@ window.YUGANTRA = {
     const r = el.getBoundingClientRect();
     const x = clamp((e.clientX - r.left) / r.width, 0, 1), y = clamp((e.clientY - r.top) / r.height, 0, 1);
     el.classList.add('tilting');
-    el.style.setProperty('--rx', `${((0.5 - y) * 10).toFixed(2)}deg`);
-    el.style.setProperty('--ry', `${((x - 0.5) * 14).toFixed(2)}deg`);
+    const soft = el.dataset.tilt === 'soft' ? 0.5 : 1;
+    el.style.setProperty('--rx', `${((0.5 - y) * 10 * soft).toFixed(2)}deg`);
+    el.style.setProperty('--ry', `${((x - 0.5) * 14 * soft).toFixed(2)}deg`);
+    el.style.setProperty('--px', ((x - 0.5) * 2).toFixed(3));
+    el.style.setProperty('--py', ((y - 0.5) * 2).toFixed(3));
     el.style.setProperty('--mx', `${(x * 100).toFixed(1)}%`);
     el.style.setProperty('--my', `${(y * 100).toFixed(1)}%`);
   }, { passive: true });
@@ -5436,6 +5718,8 @@ window.YUGANTRA = {
 
   const EMERALD = [0.086, 0.188, 0.169], BURGUNDY = [0.224, 0.02, 0.09], BRONZE = [0.373, 0.318, 0.239];
   const AGE_TINT = [EMERALD, [0.2, 0.19, 0.15], [0.12, 0.2, 0.16], BURGUNDY, BRONZE];
+  // horizon light while the tracks are read: Krita's golden dawn to Kali's burgundy dusk
+  const AGE_SKY = [[0.3, 0.23, 0.12], [0.25, 0.17, 0.09], [0.05, 0.19, 0.14], [0.27, 0.02, 0.08], [0.1, 0.08, 0.05]];
   const SECTIONS = ['top', 'origin', 'ages', 'events', 'spotlight', 'passes', 'schedule', 'stage', 'partners', 'faq', 'reach', 'contact'].map((id) => ({ id, el: document.getElementById(id), cover: 0 }));
   const dialSlot = $('#dialSlot');
   function targetFor(id, w, h) {
@@ -5473,7 +5757,7 @@ window.YUGANTRA = {
     }
   }
 
-  const cur = { x: 0, y: 0, r: 0, o: 1, t: EMERALD.slice(), light: -0.6, px: 0.9, py: -0.9 };
+  const cur = { x: 0, y: 0, r: 0, o: 1, t: EMERALD.slice(), light: -0.6, px: 0.9, py: -0.9, sky: [0, 0, 0], night: 0 };
   let first = true;
   const acc = { centre: 0, rim: 0 }, spinTo = { centre: 4, wheel: -7, rim: 3 };
   const rot = [0, 0, 0, 0, 0, 0];
@@ -5924,6 +6208,11 @@ window.YUGANTRA = {
       if (ll > 2.2) { lpx *= 2.2 / ll; lpy *= 2.2 / ll; }
       cur.px = damp(cur.px, lpx, 7, dt); cur.py = damp(cur.py, lpy, 7, dt);
 
+      // the page's light: the track being read, and day or night
+      const skyT = agesState.active ? AGE_SKY[agesState.stage] || [0, 0, 0] : [0, 0, 0];
+      for (let k = 0; k < 3; k++) cur.sky[k] = damp(cur.sky[k], skyT[k], 2.2, dt);
+      cur.night = damp(cur.night, root.classList.contains('night') ? 1 : 0, 1.5, dt);
+
       updateLens(dt);
       if (needResize) { dial.resize(W, canvasH(), dpr); needResize = false; }
       dial.render({
@@ -5935,7 +6224,8 @@ window.YUGANTRA = {
         tint: cur.t, grain: 0.035,
         focusA: texReady ? fa : -1, focusB: fb, focusAmt: amt, sectors: DIAL_EVENTS.length,
         boot: bootV, explode, tilt: [0.95 * explode, -0.42 * explode],
-        ptr: [cur.px, cur.py], relief: 1
+        ptr: [cur.px, cur.py], relief: 1,
+        sky: cur.sky, night: cur.night, bloom: 1 + 0.45 * cur.night
       });
 
       const quiet = ready && !document.hidden && dtRaw < 0.25 && Math.abs(vel) < 20 && explode < 0.01;
@@ -5972,6 +6262,8 @@ window.YUGANTRA = {
   renderPartners();
   renderFaq();
   initReach();
+  renderKolams();
+  initNumerals();
   initHeadings();
   initReadouts();
   resize();

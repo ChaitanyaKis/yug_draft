@@ -177,12 +177,15 @@
    * Odometer — digits roll like a mechanical counter                   *
    * ------------------------------------------------------------------ */
   const STRIP = '0123456789'.split('').map((d) => `<i>${d}</i>`).join('');
+  const ML = (n) => String(n).replace(/\d/g, (d) => String.fromCharCode(0x0d66 + Number(d)));
+  const STRIP_ML = '0123456789'.split('').map((d) => `<i lang="ml">${ML(d)}</i>`).join('');
   function odo(el, text) {
     const str = String(text);
     const shape = str.replace(/\d/g, '0');
     if (el._odo !== shape) {
+      const strip = el.hasAttribute('data-ml') ? STRIP_ML : STRIP;
       el.innerHTML = `<span class="sr">${esc(str)}</span>` + [...str].map((ch) => (/\d/.test(ch)
-        ? `<span class="odo-d" aria-hidden="true"><span class="odo-s">${STRIP}</span></span>`
+        ? `<span class="odo-d" aria-hidden="true"><span class="odo-s">${strip}</span></span>`
         : `<span class="odo-c" aria-hidden="true">${esc(ch)}</span>`)).join('');
       el._odo = shape;
       el.classList.add('odo');
@@ -425,9 +428,16 @@
     return ((((ist - 6 * 3600e3) % 864e5) + 864e5) % 864e5) / 864e5;
   }
   let lastGhatiText = '';
+  /* Night follows the fest's own clock: ghati 30 (18:00 IST) to ghati 60 (06:00).
+     ?night=1 / ?night=0 or the terminal's `night` command override it. */
+  const nightParam = new URLSearchParams(location.search).get('night');
+  let nightMode = nightParam === '1' ? 'on' : nightParam === '0' ? 'off' : 'auto';
+  const isNight = (frac) => (nightMode === 'auto' ? frac >= 0.5 : nightMode === 'on');
   function updateGhatiText(frac) {
     const g = frac * 60;
-    const txt = `${Math.floor(g)} gh ${Math.floor((g % 1) * 60)} pa`;
+    const night = isNight(frac);
+    root.classList.toggle('night', night);
+    const txt = `${Math.floor(g)} gh ${Math.floor((g % 1) * 60)} pa · ${night ? 'night' : 'day'}`;
     if (txt !== lastGhatiText) { lastGhatiText = txt; $('#ghatiNow').textContent = txt; }
   }
 
@@ -710,12 +720,13 @@
       <div class="lg-item"><svg class="lg-svg" viewBox="-22 -22 44 44" aria-hidden="true">${ICONS[sample.icon]}</svg><p><b>Centre</b> what you'll do (here: code)</p></div>`;
 
     $('#evGrid').innerHTML = D.events.map((ev) => `<div class="ev-cell" data-era="${ev.era}">
-      <button class="ev${ev.status === 'tbc' ? ' is-tbc' : ''}" type="button" data-open="${ev.id}" data-dial-ev="${ev.id}" data-era="${ev.era}" aria-haspopup="dialog" aria-label="${esc(ev.name)}, ${esc(AGE[ev.era].domain)} track${ev.status === 'tbc' ? ', to be confirmed' : ''}. Open details.">
+      <button data-tilt="soft" class="ev${ev.status === 'tbc' ? ' is-tbc' : ''}" type="button" data-open="${ev.id}" data-dial-ev="${ev.id}" data-era="${ev.era}" aria-haspopup="dialog" aria-label="${esc(ev.name)}, ${esc(AGE[ev.era].domain)} track${ev.status === 'tbc' ? ', to be confirmed' : ''}. Open details.">
         <span class="ev-top"><span class="era">${figSVG(AGE[ev.era].index)}${esc(AGE[ev.era].track)}</span><span>${ev.status === 'tbc' ? '<em class="tbc">To be confirmed</em>' : esc(whenLabel(ev))}</span></span>
         <span class="ev-glyph">${glyphSVG(ev)}</span>
         <span class="ev-name">${esc(ev.name)}</span>
         <span class="ev-format">${esc(ev.format)}</span>
         <span class="ev-foot">${footFor(ev)}<span class="ev-team">Team ${esc(ev.teamLabel)}<br>${esc(durShort(ev))}</span></span>
+        <span class="foil" aria-hidden="true"></span>
       </button>${pickBtn(ev)}</div>`).join('');
     drawOnView($('#evGrid'));
 
@@ -1753,6 +1764,12 @@
     } },
     play: { a: '', d: 'hear the whole fest as music', run() { closeTerm(); setTimeout(() => { $('#schedule').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' }); FestSound.start(); }, 80); } },
     sound: { a: 'on|off', d: 'interface sounds', run(q) { setSound(!/off|0|no/i.test(q || '') && (q ? true : !Sound.on)); tPrint(`sound ${Sound.on ? 'on' : 'off'}`); } },
+    night: { a: 'on|off|auto', d: 'the site\'s night palette', run(q) {
+      const v = (q || '').toLowerCase();
+      nightMode = v === 'on' || v === 'off' ? v : v === 'auto' ? 'auto' : (root.classList.contains('night') ? 'off' : 'on');
+      updateGhatiText(ghatiFraction(Date.now()));
+      tPrint(`night ${nightMode}${nightMode === 'auto' ? ' · follows 18:00–06:00 IST' : ''}`);
+    } },
     binary: { a: '<text>', d: 'text as 8-bit binary', run(q) {
       const t = q || site.name.toUpperCase();
       tPrint(T([...t].slice(0, 32).map((ch) => ch.charCodeAt(0).toString(2).padStart(8, '0')).join(' ')));
@@ -2002,9 +2019,98 @@
     return { start, stop, frame, get playing() { return playing; }, focus: () => (playing ? focusIdx : -1), hand: () => (playing ? handA : null) };
   })();
 
+  /* ------------------------------------------------------------------ *
+   * Kolam dividers. A sikku kolam is one unbroken line looped around a   *
+   * grid of dots. Built as a mirror curve: the line runs diagonally      *
+   * between the grid's edges and bounces off "mirrors"; mirror layouts   *
+   * are tried until the line closes as a single loop. Each divider's     *
+   * dot count comes from the fest's data.                                *
+   * ------------------------------------------------------------------ */
+  function kolamLoops(cols, rows, seed) {
+    let h = 2166136261;
+    for (const c of String(seed)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
+    const rnd = () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return (h >>> 0) / 4294967296; };
+    const W = 2 * cols, Hh = 2 * rows, need = 4 * cols * rows;
+    const key = (p, q) => { const a = p[0] * 1000 + p[1], b = q[0] * 1000 + q[1]; return a < b ? a * 1e6 + b : b * 1e6 + a; };
+    let best = null;
+    for (let attempt = 0; attempt < 800; attempt++) {
+      const mirror = new Set();
+      for (let x = 2; x < W; x += 2) for (let y = 1; y < Hh; y += 2) if (rnd() < 0.34) mirror.add(x * 1000 + y);
+      for (let y = 2; y < Hh; y += 2) for (let x = 1; x < W; x += 2) if (rnd() < 0.34) mirror.add(x * 1000 + y);
+      const isM = (x, y) => x === 0 || x === W || y === 0 || y === Hh || mirror.has(x * 1000 + y);
+      const seen = new Set(), loops = [];
+      for (let cx = 0; cx < cols; cx++) for (let cy = 0; cy < rows; cy++) for (const d0 of [[1, 1], [1, -1]]) {
+        let p = [2 * cx, 2 * cy + 1];
+        if (seen.has(key(p, [p[0] + d0[0], p[1] + d0[1]]))) continue;
+        const dir = d0.slice(), pts = [];
+        for (let k = 0; k <= need; k++) {
+          const q = [p[0] + dir[0], p[1] + dir[1]], sk = key(p, q);
+          if (seen.has(sk)) break;
+          seen.add(sk); pts.push(q);
+          if (isM(q[0], q[1])) { if (q[0] % 2 === 0) dir[0] = -dir[0]; else dir[1] = -dir[1]; }
+          p = q;
+        }
+        loops.push(pts);
+      }
+      if (!best || loops.length < best.length) best = loops;
+      if (loops.length === 1) break;
+    }
+    return best;
+  }
+  function kolamSVG(cols, rows, seed) {
+    const loops = kolamLoops(cols, rows, seed);
+    const mid = (a, b) => `${(a[0] + b[0]) / 2} ${(a[1] + b[1]) / 2}`;
+    const d = loops.map((P) => {
+      const n = P.length;
+      let path = `M${mid(P[n - 1], P[0])}`;
+      for (let i = 0; i < n; i++) path += `Q${P[i][0]} ${P[i][1]} ${mid(P[i], P[(i + 1) % n])}`;
+      return `${path}Z`;
+    });
+    let dots = '';
+    for (let x = 0; x < cols; x++) for (let y = 0; y < rows; y++) dots += `<circle cx="${2 * x + 1}" cy="${2 * y + 1}" r="0.2" style="--k:${x + y * cols}"/>`;
+    return { svg: `<svg viewBox="-0.6 -0.6 ${2 * cols + 1.2} ${2 * rows + 1.2}" style="--cols:${cols}">${d.map((x) => `<path d="${x}" pathLength="1"/>`).join('')}<g class="kd">${dots}</g></svg>`, single: loops.length === 1 };
+  }
+  function renderKolams() {
+    const hk = EVENTS.hackathon;
+    const partnerSlots = D.partners.reduce((a, t) => a + t.slots, 0);
+    const spec = {
+      spotlight: hk && hk.hours % 2 === 0 ? [hk.hours / 2, 2, `${hk.hours} points, one for each hour of the ${hk.name}`] : [7, 2, `${D.events.length} points, one for each event`],
+      schedule: slotCount % days === 0 ? [slotCount / days, days, `${slotCount} points, one for each session, in ${days} rows for ${days} days`] : [6, days, `${days} rows, one for each day`],
+      partners: [partnerSlots, 1, `${partnerSlots} points, one for each partner slot`],
+      reach: D.events.length % 2 === 0 ? [D.events.length / 2, 2, `${D.events.length} points, one for each event`] : [D.events.length, 1, `${D.events.length} points, one for each event`]
+    };
+    const io = new IntersectionObserver((en) => en.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('drawn'); io.unobserve(e.target); } }), { threshold: 0.5 });
+    $$('[data-kolam]').forEach((fig) => {
+      const sp = spec[fig.dataset.kolam];
+      if (!sp) { fig.remove(); return; }
+      const k = kolamSVG(sp[0], sp[1], `yugantra-${fig.dataset.kolam}`);
+      fig.innerHTML = `${k.svg}<figcaption>Kolam · ${esc(sp[2])}${k.single ? ' · one unbroken line' : ''}</figcaption>`;
+      if (reduced) fig.classList.add('drawn'); else io.observe(fig);
+    });
+  }
+
+  /* Malayalam numerals: every section, the rail and the watermarks are numbered ൧ to ൧൦. */
+  function initNumerals() {
+    const order = ['origin', 'ages', 'events', 'spotlight', 'passes', 'schedule', 'stage', 'partners', 'faq', 'reach'];
+    order.forEach((id, i) => {
+      const sec = document.getElementById(id);
+      if (!sec) return;
+      const eb = sec.querySelector('.eyebrow');
+      if (eb && !eb.querySelector('.sec-no')) eb.insertAdjacentHTML('afterbegin', `<span class="sec-no" lang="ml" aria-hidden="true">${ML(i + 1)}</span>`);
+      const mk = $(':scope > .sec-mark', sec);
+      if (mk && !mk.querySelector('.smn')) mk.innerHTML = `<span class="smn" lang="ml">${ML(i + 1)}</span>${esc(mk.textContent)}`;
+    });
+    $$('#rail a').forEach((a) => {
+      const sp = a.querySelector('span');
+      if (sp && !sp.querySelector('b')) sp.insertAdjacentHTML('afterbegin', `<b lang="ml">${ML(order.indexOf(a.dataset.sec) + 1)}</b> `);
+    });
+    const ke = $('.foot-cal [data-bind="kollamEra"]');
+    if (ke) ke.insertAdjacentHTML('afterend', ` <span class="ml-num" lang="ml">(${ML(site.kollamEra)})</span>`);
+  }
+
   /* cards you can pick up: goodies and the pass tilt toward the pointer */
   let tiltEl = null;
-  const resetTilt = (el) => { el.classList.remove('tilting'); ['--rx', '--ry'].forEach((p) => el.style.removeProperty(p)); };
+  const resetTilt = (el) => { el.classList.remove('tilting'); ['--rx', '--ry', '--px', '--py'].forEach((p) => el.style.removeProperty(p)); };
   document.addEventListener('pointermove', (e) => {
     if (e.pointerType === 'touch' || reduced) return;
     const el = e.target.closest ? e.target.closest('[data-tilt]') : null;
@@ -2014,8 +2120,11 @@
     const r = el.getBoundingClientRect();
     const x = clamp((e.clientX - r.left) / r.width, 0, 1), y = clamp((e.clientY - r.top) / r.height, 0, 1);
     el.classList.add('tilting');
-    el.style.setProperty('--rx', `${((0.5 - y) * 10).toFixed(2)}deg`);
-    el.style.setProperty('--ry', `${((x - 0.5) * 14).toFixed(2)}deg`);
+    const soft = el.dataset.tilt === 'soft' ? 0.5 : 1;
+    el.style.setProperty('--rx', `${((0.5 - y) * 10 * soft).toFixed(2)}deg`);
+    el.style.setProperty('--ry', `${((x - 0.5) * 14 * soft).toFixed(2)}deg`);
+    el.style.setProperty('--px', ((x - 0.5) * 2).toFixed(3));
+    el.style.setProperty('--py', ((y - 0.5) * 2).toFixed(3));
     el.style.setProperty('--mx', `${(x * 100).toFixed(1)}%`);
     el.style.setProperty('--my', `${(y * 100).toFixed(1)}%`);
   }, { passive: true });
@@ -2286,6 +2395,8 @@
 
   const EMERALD = [0.086, 0.188, 0.169], BURGUNDY = [0.224, 0.02, 0.09], BRONZE = [0.373, 0.318, 0.239];
   const AGE_TINT = [EMERALD, [0.2, 0.19, 0.15], [0.12, 0.2, 0.16], BURGUNDY, BRONZE];
+  // horizon light while the tracks are read: Krita's golden dawn to Kali's burgundy dusk
+  const AGE_SKY = [[0.3, 0.23, 0.12], [0.25, 0.17, 0.09], [0.05, 0.19, 0.14], [0.27, 0.02, 0.08], [0.1, 0.08, 0.05]];
   const SECTIONS = ['top', 'origin', 'ages', 'events', 'spotlight', 'passes', 'schedule', 'stage', 'partners', 'faq', 'reach', 'contact'].map((id) => ({ id, el: document.getElementById(id), cover: 0 }));
   const dialSlot = $('#dialSlot');
   function targetFor(id, w, h) {
@@ -2323,7 +2434,7 @@
     }
   }
 
-  const cur = { x: 0, y: 0, r: 0, o: 1, t: EMERALD.slice(), light: -0.6, px: 0.9, py: -0.9 };
+  const cur = { x: 0, y: 0, r: 0, o: 1, t: EMERALD.slice(), light: -0.6, px: 0.9, py: -0.9, sky: [0, 0, 0], night: 0 };
   let first = true;
   const acc = { centre: 0, rim: 0 }, spinTo = { centre: 4, wheel: -7, rim: 3 };
   const rot = [0, 0, 0, 0, 0, 0];
@@ -2774,6 +2885,11 @@
       if (ll > 2.2) { lpx *= 2.2 / ll; lpy *= 2.2 / ll; }
       cur.px = damp(cur.px, lpx, 7, dt); cur.py = damp(cur.py, lpy, 7, dt);
 
+      // the page's light: the track being read, and day or night
+      const skyT = agesState.active ? AGE_SKY[agesState.stage] || [0, 0, 0] : [0, 0, 0];
+      for (let k = 0; k < 3; k++) cur.sky[k] = damp(cur.sky[k], skyT[k], 2.2, dt);
+      cur.night = damp(cur.night, root.classList.contains('night') ? 1 : 0, 1.5, dt);
+
       updateLens(dt);
       if (needResize) { dial.resize(W, canvasH(), dpr); needResize = false; }
       dial.render({
@@ -2785,7 +2901,8 @@
         tint: cur.t, grain: 0.035,
         focusA: texReady ? fa : -1, focusB: fb, focusAmt: amt, sectors: DIAL_EVENTS.length,
         boot: bootV, explode, tilt: [0.95 * explode, -0.42 * explode],
-        ptr: [cur.px, cur.py], relief: 1
+        ptr: [cur.px, cur.py], relief: 1,
+        sky: cur.sky, night: cur.night, bloom: 1 + 0.45 * cur.night
       });
 
       const quiet = ready && !document.hidden && dtRaw < 0.25 && Math.abs(vel) < 20 && explode < 0.01;
@@ -2822,6 +2939,8 @@
   renderPartners();
   renderFaq();
   initReach();
+  renderKolams();
+  initNumerals();
   initHeadings();
   initReadouts();
   resize();

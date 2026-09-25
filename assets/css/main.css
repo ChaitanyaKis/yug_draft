@@ -1589,3 +1589,40 @@ html:not(.ready) .rail, html.dlg-open .rail, html.lock .rail { opacity: 0; point
 .my-s { display: block; }
 .my-s .fig { margin-right: 6px; vertical-align: -2px; }
 .play-cap .pc-q { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-2); }
+
+/* ---------- night (18:00–06:00 IST) ---------- */
+body { transition: background-color 2s ease; }
+html.night body { background-color: #020b08; }
+html.night { --panel: rgba(12, 28, 24, 0.5); }
+html.night .nav.scrolled { background-color: rgba(2, 10, 8, 0.86); }
+
+/* ---------- kolam dividers ---------- */
+.kolam { position: relative; z-index: 1; margin: 0; display: grid; justify-items: center; gap: 12px; padding: clamp(8px, 2vw, 20px) var(--gutter); }
+.kolam svg { width: min(100%, calc(var(--cols) * 46px)); height: auto; overflow: visible; }
+.kolam path { fill: none; stroke: var(--gold); stroke-width: 0.07; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 3.6s cubic-bezier(0.45, 0, 0.2, 1) 0.35s; }
+.kolam .kd circle { fill: var(--gold-hi); opacity: 0; transition: opacity 0.5s var(--ease); transition-delay: calc(var(--k, 0) * 18ms); }
+.kolam.drawn path { stroke-dashoffset: 0; }
+.kolam.drawn .kd circle { opacity: 0.9; }
+.kolam figcaption { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-2); opacity: 0; transition: opacity 0.8s 2.6s; text-align: center; }
+.kolam.drawn figcaption { opacity: 0.8; }
+@media (prefers-reduced-motion: reduce) { .kolam path { stroke-dashoffset: 0; } .kolam .kd circle, .kolam figcaption { opacity: 0.85; } }
+
+/* ---------- Malayalam numerals ---------- */
+.sec-no { font-family: var(--f-ml); font-weight: 600; font-size: 15px; letter-spacing: 0; text-transform: none; color: var(--gold-hi); margin-right: -2px; }
+.sec-mark .smn { font-family: var(--f-ml); margin-right: 0.12em; font-size: 0.9em; }
+.rail a span b { font-family: var(--f-ml); font-weight: 400; letter-spacing: 0; color: var(--gold); margin-right: 4px; }
+.odo [lang="ml"], .odo i[lang="ml"] { font-family: var(--f-ml); }
+.ml-num { font-family: var(--f-ml); color: var(--gold-hi); }
+
+/* ---------- foil event cards ---------- */
+.ev[data-tilt] { transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); }
+.ev[data-tilt]:hover { transform: perspective(1000px) translateY(-3px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); }
+.ev .foil {
+  z-index: 1; mix-blend-mode: overlay; opacity: 0;
+  background:
+    radial-gradient(circle at var(--mx, 50%) var(--my, 40%), rgba(255, 244, 220, 0.3), transparent 42%),
+    linear-gradient(115deg, transparent 22%, rgba(216, 193, 154, 0.32) calc(var(--mx, 50%) - 11%), rgba(239, 226, 196, 0.5) var(--mx, 50%), rgba(163, 133, 96, 0.28) calc(var(--mx, 50%) + 11%), transparent 78%);
+}
+.ev.tilting .foil { opacity: 1; }
+.ev-glyph { transition: transform 0.6s var(--ease); }
+.ev.tilting .ev-glyph { transform: translate3d(calc(var(--px, 0) * 8px), calc(var(--py, 0) * 6px), 0); transition-duration: 0.15s; }
