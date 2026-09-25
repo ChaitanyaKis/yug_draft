@@ -709,14 +709,14 @@
       <div class="lg-item"><svg class="lg-svg lg-dots" viewBox="-30 -10 60 20" aria-hidden="true">${Array.from({ length: max }, (_, k) => `<circle cx="${(k - (max - 1) / 2) * 12}" r="3.6"${k < need ? ' class="fillc"' : ''}/>`).join('')}</svg><p><b>Dots</b> team size: filled required, open optional</p></div>
       <div class="lg-item"><svg class="lg-svg" viewBox="-22 -22 44 44" aria-hidden="true">${ICONS[sample.icon]}</svg><p><b>Centre</b> what you'll do (here: code)</p></div>`;
 
-    $('#evGrid').innerHTML = D.events.map((ev) => `
+    $('#evGrid').innerHTML = D.events.map((ev) => `<div class="ev-cell" data-era="${ev.era}">
       <button class="ev${ev.status === 'tbc' ? ' is-tbc' : ''}" type="button" data-open="${ev.id}" data-dial-ev="${ev.id}" data-era="${ev.era}" aria-haspopup="dialog" aria-label="${esc(ev.name)}, ${esc(AGE[ev.era].domain)} track${ev.status === 'tbc' ? ', to be confirmed' : ''}. Open details.">
         <span class="ev-top"><span class="era">${figSVG(AGE[ev.era].index)}${esc(AGE[ev.era].track)}</span><span>${ev.status === 'tbc' ? '<em class="tbc">To be confirmed</em>' : esc(whenLabel(ev))}</span></span>
         <span class="ev-glyph">${glyphSVG(ev)}</span>
         <span class="ev-name">${esc(ev.name)}</span>
         <span class="ev-format">${esc(ev.format)}</span>
         <span class="ev-foot">${footFor(ev)}<span class="ev-team">Team ${esc(ev.teamLabel)}<br>${esc(durShort(ev))}</span></span>
-      </button>`).join('');
+      </button>${pickBtn(ev)}</div>`).join('');
     drawOnView($('#evGrid'));
 
     const filters = [{ id: 'all', label: 'All', n: D.events.length, i: -1 }].concat(D.ages.map((a, i) => ({ id: a.id, label: a.domain, n: eventsOf(a.id).length, i })));
@@ -725,7 +725,7 @@
     setFilter = (id) => {
       $$('[data-filter]', fh).forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.filter === id)));
       let k = 0;
-      $$('.ev', $('#evGrid')).forEach((card) => {
+      $$('.ev-cell', $('#evGrid')).forEach((card) => {
         const show = id === 'all' || card.dataset.era === id;
         card.hidden = !show;
         card.classList.remove('enter');
@@ -785,9 +785,10 @@
     $('#dlgH').hidden = !inc.length;
     $('#dlgRules').innerHTML = inc.map((r) => `<li>${esc(r)}</li>`).join('');
     const url = ev.registerUrl || site.registerUrl;
-    $('#dlgCta').innerHTML = url
+    $('#dlgCta').innerHTML = (url
       ? `<a class="btn btn-gold" href="${esc(url)}" target="_blank" rel="noopener">Register for ${esc(ev.name)}</a>`
-      : `<span class="btn" aria-disabled="true">Registration opens ${esc(site.registrationOpens)}</span><span class="note">Fees are paid at registration.</span>`;
+      : `<span class="btn" aria-disabled="true">Registration opens ${esc(site.registrationOpens)}</span>`) + pickBtn(ev, true) + (url ? '' : '<span class="note">Fees are paid at registration.</span>');
+    syncPicks();
 
     dlgOrigin = from || null;
     const a = flyRect(from);
@@ -832,7 +833,7 @@
   }
   $('#dlgClose').addEventListener('click', closeEvent);
   dlg.addEventListener('cancel', (e) => { e.preventDefault(); closeEvent(); });
-  dlg.addEventListener('close', () => { dlgBusy = false; dlg.classList.remove('closing', 'flying'); root.classList.remove('dlg-open'); });
+  dlg.addEventListener('close', () => { dlgBusy = false; dlg.classList.remove('closing', 'flying'); if (!$('#myDlg').open) root.classList.remove('dlg-open'); });
   dlg.addEventListener('click', (e) => { if (e.target === dlg) closeEvent(); });
   document.addEventListener('click', (e) => {
     const t = e.target.closest('[data-open]');
@@ -863,7 +864,7 @@
         const live = now >= start && now < start + slotHours(slot) * 3600e3;
         const a = AGE[era];
         const title = evId ? `<button type="button" class="slot-open" data-open="${evId}">${esc(name)}</button>` : esc(name);
-        return `<li class="slot${live ? ' live' : ''}"${evId ? ` data-dial-ev="${evId}" data-ev="${evId}"` : ''}><time datetime="${d.date}T${t}+05:30">${t}</time><span class="gh">${toGhati(t)}</span><span class="nm">${title}</span><span class="vn">${esc(venue === 'TBA' ? 'Venue TBA' : venue)}</span><span class="era" title="${esc(a.domain)} track">${figSVG(a.index)}</span></li>`;
+        return `<li class="slot${live ? ' live' : ''}"${evId ? ` data-dial-ev="${evId}" data-ev="${evId}" data-mine-ev="${evId}"` : ''}><time datetime="${d.date}T${t}+05:30">${t}</time><span class="gh">${toGhati(t)}</span><span class="nm">${title}</span><span class="vn">${esc(venue === 'TBA' ? 'Venue TBA' : venue)}</span><span class="era" title="${esc(a.domain)} track">${figSVG(a.index)}</span></li>`;
       }).join('')}</ol></div>`).join('');
     const select = (i, focus) => {
       sel = i;
@@ -881,6 +882,8 @@
     });
     renderRibbon();
   }
+  let ribbonX = () => 0; // hour since Day 1 00:00 → % across the ribbon
+  let ribbonMap = null;
   function renderRibbon() {
     // Nights (00:00–08:00) are drawn at a quarter scale so the daytime sessions get the room.
     const NIGHT = 0.25, DAY_W = 8 * NIGHT + 16, TOTAL_W = days * DAY_W, total = days * 24;
@@ -915,11 +918,12 @@
       const a = AGE[era];
       const tiny = (X(it.end) - X(it.start)) * px < 70 ? ' tiny' : '';
       const style = `left:${pct(it.start)};width:${span(it.start, it.end)};top:${34 + it.lane * 34}px`;
+      const hrs = `data-h0="${it.start}" data-h1="${it.end}"`;
       const label = evId ? (EVENTS[evId].short || name) : name;
       const inner = `${figSVG(a.index)}<span>${esc(label)}</span>`;
       return evId
-        ? `<button type="button" class="rb-bar${tiny}" style="${style}" data-open="${evId}" data-dial-ev="${evId}" data-ev="${evId}" title="${esc(name)} · Day ${it.d.day} ${t}" aria-label="${esc(name)}, Day ${it.d.day} ${t}">${inner}</button>`
-        : `<span class="rb-bar plain${tiny}" style="${style}" title="${esc(name)} · Day ${it.d.day} ${t}">${inner}</span>`;
+        ? `<button type="button" class="rb-bar${tiny}" style="${style}" ${hrs} data-open="${evId}" data-dial-ev="${evId}" data-ev="${evId}" data-mine-ev="${evId}" title="${esc(name)} · Day ${it.d.day} ${t}" aria-label="${esc(name)}, Day ${it.d.day} ${t}">${inner}</button>`
+        : `<span class="rb-bar plain${tiny}" style="${style}" ${hrs} title="${esc(name)} · Day ${it.d.day} ${t}">${inner}</span>`;
     }).join('');
     const now = Date.now();
     let nowHtml = '';
@@ -930,7 +934,10 @@
       nowHtml = `<span class="rb-pre">Starts in ${Math.ceil((startMs - now) / 864e5)} days</span>`;
     }
     rb.style.height = `${34 + lanes.length * 34 + 30}px`;
-    rb.innerHTML = `${daysHtml}${ticks}${cam}${bars}${nowHtml}`;
+    rb.innerHTML = `${daysHtml}${ticks}${cam}${bars}${nowHtml}<i class="rb-play" id="rbPlay" hidden></i>`;
+    ribbonX = (h) => (X(h) / TOTAL_W) * 100;
+    ribbonMap = { X, TOTAL_W, items };
+    syncPicks();
   }
   // Hovering anything tied to an event lights it up everywhere it appears.
   let litEv = null;
@@ -1258,7 +1265,7 @@
     const tba = D.events.length - priced.length;
     $('#passLead').textContent = `Each event has its own entry fee${lo ? `, from ${lo.fee} for ${lo.name} to ${hi.fee} for the ${hi.name}` : ''}. You pay when you register.`;
     const steps = [
-      ['Pick your events', `${D.events.length} events across ${D.ages.length} tracks. Each lists its team size, fee and prize pool.`, '#events'],
+      ['Pick your events', `${D.events.length} events across ${D.ages.length} tracks. Star the ones you want: My Yuga keeps your plan, flags clashes and adds it to your calendar.`, '#events'],
       ['Register', site.registerUrl ? 'Register from the event you picked.' : `Registration opens ${site.registrationOpens}. The link goes live on every event.`],
       ['Pay the entry fee', `Per person or per team, as listed below.${tba ? ` ${tba} fees are still to be announced.` : ''}`],
       ['Turn up', `Your event's day, time and venue are on the schedule${site.scheduleIsProvisional ? ', provisional for now' : ''}.`, '#schedule']
@@ -1269,7 +1276,7 @@
 
     const prov = site.scheduleIsProvisional;
     $('#fees').innerHTML = `<caption>Every event at a glance${prov ? ' · days and times are provisional' : ''}</caption>
-      <thead><tr><th scope="col"><span class="sr">Track</span></th><th scope="col">Event</th><th scope="col">Team</th><th scope="col">Entry fee</th><th scope="col">Prize pool</th><th scope="col">When</th></tr></thead>
+      <thead><tr><th scope="col"><span class="sr">Track</span></th><th scope="col">Event</th><th scope="col">Team</th><th scope="col">Entry fee</th><th scope="col">Prize pool</th><th scope="col">When</th><th scope="col"><span class="sr">My Yuga</span></th></tr></thead>
       <tbody>${DIAL_EVENTS.map((ev) => {
         const a = AGE[ev.era];
         const prize = ev.prize ? rupees(ev.prize) : ev.kind === 'competition' ? 'TBA' : '—';
@@ -1279,7 +1286,8 @@
           <td data-k="Team">${esc(ev.teamLabel)}</td>
           <td data-k="Entry">${esc(ev.fee)}</td>
           <td data-k="Prize" class="fe-prize">${prize}</td>
-          <td data-k="When">${esc(whenLabel(ev))}</td></tr>`;
+          <td data-k="When">${esc(whenLabel(ev))}</td>
+          <td class="fe-pick">${pickBtn(ev)}</td></tr>`;
       }).join('')}</tbody>`;
     const pick = (e) => { const tr = e.target.closest && e.target.closest('[data-pass]'); if (tr) setPass(tr.dataset.pass); };
     $('#fees').addEventListener('pointerover', pick);
@@ -1338,6 +1346,662 @@
     });
   }
 
+  /* ------------------------------------------------------------------ *
+   * My Yuga — your own plan: picks, clashes, calendar, story card        *
+   * ------------------------------------------------------------------ */
+  const STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.5l-5.2 2.7 1-5.8L3.6 9.3l5.8-.8z"/></svg>';
+  const picks = new Set();
+  try { JSON.parse(store.get('yg-picks') || '[]').forEach((id) => { if (EVENTS[id]) picks.add(id); }); } catch (_) { /* fresh start */ }
+  function pickBtn(ev, wide) {
+    return `<button class="pick${wide ? ' pick-wide' : ''}" type="button" data-pick="${ev.id}" aria-pressed="false" aria-label="Add ${esc(ev.name)} to My Yuga">${STAR}${wide ? '<span>Add to My Yuga</span>' : ''}</button>`;
+  }
+  const SLOTS = D.schedule.flatMap((d) => d.slots.map((slot) => {
+    const start = Date.parse(`${d.date}T${slot[0]}:00+05:30`);
+    return { d, slot, id: slot[4], start, end: start + slotHours(slot) * 3600e3 };
+  }));
+  const slotLabel = (x) => `Day ${x.d.day} · ${x.slot[0]}`;
+  function clashes() {
+    const mine = SLOTS.filter((x) => x.id && picks.has(x.id));
+    const out = [], seen = new Set();
+    mine.sort((a, b) => a.start - b.start);
+    for (let i = 0; i < mine.length; i++) for (let j = i + 1; j < mine.length; j++) {
+      const a = mine[i], b = mine[j], key = [a.id, b.id].sort().join('|');
+      if (a.id !== b.id && a.start < b.end && b.start < a.end && !seen.has(key)) { seen.add(key); out.push([a, b]); }
+    }
+    return out;
+  }
+  const firstSlot = (id) => SLOTS.filter((x) => x.id === id).sort((a, b) => a.start - b.start)[0];
+  const sortedPicks = () => [...picks].sort((a, b) => ((firstSlot(a) || { start: 9e15 }).start - (firstSlot(b) || { start: 9e15 }).start));
+  let onlyMine = false;
+  function syncPicks() {
+    $$('[data-pick]').forEach((b) => {
+      const on = picks.has(b.dataset.pick), name = EVENTS[b.dataset.pick].name;
+      b.setAttribute('aria-pressed', String(on));
+      b.setAttribute('aria-label', on ? `Remove ${name} from My Yuga` : `Add ${name} to My Yuga`);
+      const t = b.querySelector('span');
+      if (t) t.textContent = on ? 'In My Yuga' : 'Add to My Yuga';
+    });
+    $$('[data-mine-ev]').forEach((el) => el.classList.toggle('mine', picks.has(el.dataset.mineEv)));
+    const n = picks.size;
+    const dock = $('#myDock');
+    if (dock) { dock.hidden = n === 0; $('#myCount').textContent = String(n); }
+    const mm = $('#menuMy');
+    if (mm) { mm.hidden = n === 0; mm.querySelector('small').textContent = `Your plan · ${n} event${n === 1 ? '' : 's'}`; }
+    const om = $('#onlyMine');
+    if (om) { om.hidden = n === 0; if (!n && onlyMine) setOnlyMine(false); }
+    if (myDlg && myDlg.open) renderMy();
+  }
+  function togglePick(id, from) {
+    if (!EVENTS[id]) return;
+    const had = picks.has(id);
+    if (had) picks.delete(id); else picks.add(id);
+    store.set('yg-picks', JSON.stringify([...picks]));
+    syncPicks();
+    if (had) Sound.tick(700, 0.05, 0.04); else Sound.chime();
+    toast(had ? `Removed ${EVENTS[id].name}` : `${EVENTS[id].name} is in your yuga`);
+    if (!had) nav.classList.remove('hide'); // show where the plan lives
+    if (!had && from && !reduced) {
+      const dock = $('#myDock');
+      dock.classList.remove('bump'); void dock.offsetWidth; dock.classList.add('bump');
+    }
+  }
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-pick]');
+    if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    togglePick(b.dataset.pick, b);
+  }, true);
+  function setOnlyMine(on) {
+    onlyMine = on;
+    const om = $('#onlyMine');
+    om.setAttribute('aria-pressed', String(on));
+    $('#schedule').classList.toggle('only-mine', on);
+  }
+  $('#onlyMine').addEventListener('click', () => setOnlyMine(!onlyMine));
+
+  const myDlg = $('#myDlg');
+  function renderMy() {
+    const ids = sortedPicks();
+    const cl = clashes();
+    const prov = site.scheduleIsProvisional ? ' Times are from the provisional schedule.' : '';
+    $('#myNote').textContent = ids.length
+      ? `${ids.length} event${ids.length > 1 ? 's' : ''} across ${new Set(ids.map((id) => EVENTS[id].era)).size} track${new Set(ids.map((id) => EVENTS[id].era)).size > 1 ? 's' : ''}.${prov}`
+      : 'Nothing here yet. Star events on their cards, in the fee table or in any event.';
+    $('#myList').innerHTML = ids.map((id) => {
+      const ev = EVENTS[id], f = firstSlot(id), a = AGE[ev.era];
+      const clash = cl.some(([x, y]) => x.id === id || y.id === id);
+      return `<li class="my-item${clash ? ' clash' : ''}">
+        <span class="my-g">${glyphSVG(ev)}</span>
+        <span class="my-t"><button type="button" class="my-open" data-open="${id}">${esc(ev.name)}</button>
+          <span class="my-s">${figSVG(a.index)}${esc(a.domain)} · ${f ? esc(slotLabel(f)) : esc(whenLabel(ev))} · ${esc(ev.fee === 'TBA' ? 'Fee TBA' : ev.fee)}</span></span>
+        ${pickBtn(ev)}
+      </li>`;
+    }).join('');
+    $('#myClash').innerHTML = cl.length
+      ? `<p class="my-clash-k">${cl.length} clash${cl.length > 1 ? 'es' : ''}</p><ul>${cl.map(([x, y]) => `<li><b>${esc(EVENTS[x.id].name)}</b> (${esc(slotLabel(x))}, ${Math.round((x.end - x.start) / 36e5 * 10) / 10} h) overlaps <b>${esc(EVENTS[y.id].name)}</b> (${esc(slotLabel(y))}).</li>`).join('')}</ul>`
+      : ids.length > 1 ? '<p class="my-ok">No clashes: you can make all of them.</p>' : '';
+    $$('[data-pick]', myDlg).forEach((b) => b.setAttribute('aria-pressed', 'true'));
+    ['#myIcs', '#myMake', '#myClear'].forEach((sel) => { $(sel).disabled = !ids.length; });
+  }
+  function openMy() {
+    if (!myDlg.showModal || myDlg.open) return;
+    renderMy();
+    $('#myName').value = store.get('yg-name') || '';
+    root.classList.add('dlg-open');
+    myDlg.showModal();
+    Sound.chime();
+  }
+  $('#myDock').addEventListener('click', openMy);
+  document.addEventListener('click', (e) => { if (e.target.closest('[data-my]')) { e.preventDefault(); if (menuOpen) setMenu(false); setTimeout(openMy, 60); } });
+  $('#myClose').addEventListener('click', () => myDlg.close());
+  myDlg.addEventListener('click', (e) => { if (e.target === myDlg) myDlg.close(); });
+  myDlg.addEventListener('close', () => { if (!dlg.open) root.classList.remove('dlg-open'); });
+  $('#myName').addEventListener('input', (e) => store.set('yg-name', e.target.value.trim()));
+  $('#myClear').addEventListener('click', () => {
+    picks.clear(); store.set('yg-picks', '[]'); syncPicks(); renderMy();
+    $('#myPreview').hidden = true; $('#myOut').hidden = true;
+  });
+
+  // Inside the claude.ai viewer, files go through its downloads capability (the viewer
+  // confirms each save); on the deployed site a plain download link does the job.
+  const inViewer = !!(window.claude && typeof window.claude.use === 'function');
+  let viewerDl = null;
+  if (inViewer) { try { window.claude.use('downloads').then((d) => { viewerDl = d; }, () => {}); } catch (_) { /* no capability */ } }
+  const VIEWER_EXT = /\.(png|jpe?g|webp|gif|svg|pdf|txt|json|md|csv|html|zip)$/i;
+  async function saveFile(blob, name) {
+    if (!inViewer) { download(blob, name); return 'saved'; }
+    if (!viewerDl || !VIEWER_EXT.test(name)) return 'blocked';
+    try { await viewerDl.save({ filename: name, data: blob }); return 'saved'; }
+    catch (e) { return e && e.code === 'declined' ? 'declined' : 'blocked'; }
+  }
+  function download(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name; a.rel = 'noopener';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 6000);
+  }
+  /** An .ics calendar of every session of every picked event (times in UTC). */
+  function icsFor(ids) {
+    const E = (t) => String(t).replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/([,;])/g, '\\$1');
+    const utc = (ms) => new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    const fold = (line) => { const out = []; let l = line; while (l.length > 60) { out.push(l.slice(0, 60)); l = ' ' + l.slice(60); } out.push(l); return out.join('\r\n'); };
+    const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Yugantra//My Yuga//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', `X-WR-CALNAME:${E(`${site.name} ${site.edition}`)}`];
+    SLOTS.filter((x) => x.id && ids.has(x.id)).forEach((x) => {
+      const ev = EVENTS[x.id];
+      L.push('BEGIN:VEVENT',
+        `UID:${x.id}-${x.d.day}-${x.slot[0].replace(':', '')}@yugantra-${site.edition}`,
+        `DTSTAMP:${utc(Date.now())}`, `DTSTART:${utc(x.start)}`, `DTEND:${utc(x.end)}`,
+        `SUMMARY:${E(`${x.slot[1]} · ${site.name} ${site.edition}`)}`,
+        `LOCATION:${E(x.slot[2] === 'TBA' ? `Venue to be announced · ${site.venue}` : `${x.slot[2]} · ${site.venue}`)}`,
+        `DESCRIPTION:${E([ev.format, `Entry: ${ev.fee}`, ev.prize ? `Prize pool: ${rupees(ev.prize)}` : '', site.scheduleIsProvisional ? 'Timing is provisional. Check the site before you go.' : ''].filter(Boolean).join('\n'))}`,
+        'END:VEVENT');
+    });
+    L.push('END:VCALENDAR');
+    return L.map(fold).join('\r\n') + '\r\n';
+  }
+  async function saveIcs() {
+    const r = await saveFile(new Blob([icsFor(picks)], { type: 'text/calendar;charset=utf-8' }), `yugantra-${site.edition}.ics`);
+    if (r === 'saved') toast('Calendar file saved. Open it to add your events');
+    else if (r === 'blocked') toast('Calendar export works on the live site, not in this preview');
+    return r;
+  }
+  $('#myIcs').addEventListener('click', () => { if (picks.size) saveIcs(); });
+
+  /* The story card: 1080 × 1920, your picks lit on the fest wheel. */
+  const GLYPH_CSS = '<style>*{fill:none;stroke:#C9AE83;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}.fillc{fill:#D8C19A;stroke:none}.bb{stroke:none}.faint{opacity:.45}.dash{stroke-dasharray:2 2}.frame{opacity:.7}.pict *{stroke:#EFE2C4;stroke-width:1}</style>';
+  function glyphImage(ev, size) {
+    const svg = glyphSVG(ev).replace('<svg ', `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${Math.round(size * 1.1)}" `).replace(/(<svg[^>]*>)/, `$1${GLYPH_CSS}`);
+    const img = new Image();
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    return (img.decode ? img.decode() : new Promise((r) => { img.onload = r; })).then(() => img, () => null);
+  }
+  function spaced(g, text, x, y, sp, align) {
+    const w = [...text].reduce((s0, ch) => s0 + g.measureText(ch).width + sp, -sp);
+    let cx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+    const prev = g.textAlign;
+    g.textAlign = 'left';
+    for (const ch of text) { g.fillText(ch, cx, y); cx += g.measureText(ch).width + sp; }
+    g.textAlign = prev;
+    return w;
+  }
+  async function drawCard() {
+    const ids = sortedPicks();
+    const name = ($('#myName').value || '').trim();
+    await Promise.all(['400 150px "Marcellus"', '400 30px "DM Mono"', '800 60px "Baloo Chettan 2"', '300 30px "Jost"'].map((f) => document.fonts.load(f, 'YUGANTRA യുഗം 0123')).map((p) => p.catch(() => null)));
+    const c = document.createElement('canvas');
+    c.width = 1080; c.height = 1920;
+    const g = c.getContext('2d');
+    const GOLD = '#A38560', HI = '#D8C19A', TXT = '#E0E0E0', SAGE = '#A8B5AF', LINE = '#5F513D';
+    g.fillStyle = '#03110D'; g.fillRect(0, 0, 1080, 1920);
+    let rg = g.createRadialGradient(540, 800, 40, 540, 800, 1000);
+    rg.addColorStop(0, 'rgba(22,48,43,0.95)'); rg.addColorStop(1, 'rgba(3,17,13,0)');
+    g.fillStyle = rg; g.fillRect(0, 0, 1080, 1920);
+    g.fillStyle = 'rgba(163,133,96,0.07)';
+    for (let y = 18; y < 1920; y += 36) for (let x = 18; x < 1080; x += 36) { g.beginPath(); g.arc(x, y, 1.6, 0, TAU); g.fill(); }
+    // heading
+    g.fillStyle = GOLD; g.font = '400 28px "DM Mono", monospace'; g.textBaseline = 'alphabetic';
+    spaced(g, `${name ? `${name.toUpperCase()}'S` : 'MY'} YUGANTRA ${site.edition}`, 540, 290, 7, 'center');
+    const mg = g.createLinearGradient(0, 330, 0, 470);
+    [[0, '#EFE2C4'], [0.35, '#CDB186'], [0.6, '#A38560'], [0.8, '#6E5A40'], [1, '#E6D3AC']].forEach(([o, col]) => mg.addColorStop(o, col));
+    g.fillStyle = mg; g.font = '400 156px "Marcellus", Georgia, serif'; g.textAlign = 'center';
+    g.fillText('YUGANTRA', 540, 455);
+    g.fillStyle = SAGE; g.font = '400 26px "DM Mono", monospace';
+    const tw = spaced(g, 'WHERE TECH DEFINES THE', 500, 522, 5, 'center');
+    g.fillStyle = HI; g.font = '800 46px "Baloo Chettan 2", sans-serif'; g.textAlign = 'left';
+    g.fillText('യുഗം', 500 + tw / 2 + 16, 528);
+    // the wheel: every event a sector, yours lit
+    const cx = 540, cy = 890, R = 262;
+    g.lineWidth = 2; g.strokeStyle = LINE;
+    [R + 34, R, R * 0.62, R * 0.36].forEach((r) => { g.beginPath(); g.arc(cx, cy, r, 0, TAU); g.stroke(); });
+    DIAL_EVENTS.forEach((ev, i) => {
+      const a0 = -Math.PI / 2 + i * DIAL_STEP, a1 = a0 + DIAL_STEP;
+      const on = picks.has(ev.id);
+      g.beginPath(); g.arc(cx, cy, R, a0 + 0.012, a1 - 0.012); g.arc(cx, cy, R * 0.62, a1 - 0.012, a0 + 0.012, true); g.closePath();
+      if (on) {
+        const sg = g.createRadialGradient(cx, cy, R * 0.62, cx, cy, R);
+        sg.addColorStop(0, 'rgba(163,133,96,0.55)'); sg.addColorStop(1, 'rgba(216,193,154,0.95)');
+        g.fillStyle = sg; g.shadowColor = 'rgba(216,193,154,0.6)'; g.shadowBlur = 36; g.fill(); g.shadowBlur = 0;
+      } else { g.fillStyle = 'rgba(22,48,43,0.55)'; g.fill(); g.strokeStyle = 'rgba(95,81,61,0.8)'; g.lineWidth = 1.5; g.stroke(); }
+      // label runs along the radius, sized to fit the band
+      const am = (a0 + a1) / 2, left = Math.cos(am) < -0.01;
+      const label = (ev.short || ev.name).toUpperCase();
+      g.save(); g.translate(cx + Math.cos(am) * R * 0.81, cy + Math.sin(am) * R * 0.81);
+      g.rotate(left ? am + Math.PI : am);
+      g.font = `${on ? 500 : 400} 18px "DM Mono", monospace`;
+      const lw = g.measureText(label).width, room = R * 0.34;
+      if (lw > room) g.font = `${on ? 500 : 400} ${Math.max(11, 18 * room / lw).toFixed(1)}px "DM Mono", monospace`;
+      g.fillStyle = on ? '#03110D' : SAGE; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(label, 0, 0);
+      g.restore();
+    });
+    // the tracks, in the inner band
+    TRACK_RANGE.forEach((rgn, k) => {
+      if (!rgn) return;
+      const a0 = -Math.PI / 2 + rgn[0] * DIAL_STEP, a1 = -Math.PI / 2 + (rgn[1] + 1) * DIAL_STEP;
+      const any = eventsOf(D.ages[k].id).some((e) => picks.has(e.id));
+      g.strokeStyle = any ? HI : LINE; g.lineWidth = any ? 5 : 2;
+      g.beginPath(); g.arc(cx, cy, R * 0.49, a0 + 0.03, a1 - 0.03); g.stroke();
+    });
+    // the marker, and the count at the centre
+    g.fillStyle = HI; g.beginPath(); g.moveTo(cx, cy - R - 16); g.lineTo(cx - 14, cy - R - 44); g.lineTo(cx + 14, cy - R - 44); g.closePath(); g.fill();
+    g.fillStyle = TXT; g.font = '400 120px "Marcellus", Georgia, serif'; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+    g.fillText(String(ids.length), cx, cy + 34);
+    g.fillStyle = GOLD; g.font = '400 20px "DM Mono", monospace';
+    spaced(g, ids.length === 1 ? 'EVENT' : 'EVENTS', cx, cy + 74, 5, 'center');
+    // the list
+    const rows = ids.slice(0, 4);
+    const imgs = await Promise.all(rows.map((id) => glyphImage(EVENTS[id], 96)));
+    let y = 1270;
+    rows.forEach((id, i) => {
+      const ev = EVENTS[id], f = firstSlot(id);
+      if (imgs[i]) g.drawImage(imgs[i], 100, y - 50, 72, 79);
+      g.fillStyle = TXT; g.font = '400 44px "Marcellus", Georgia, serif'; g.textAlign = 'left';
+      g.fillText(ev.name, 214, y);
+      g.fillStyle = SAGE; g.font = '400 23px "DM Mono", monospace';
+      spaced(g, `${AGE[ev.era].track} · ${f ? slotLabel(f).toUpperCase() : whenLabel(ev).toUpperCase()}`, 214, y + 38, 2, 'left');
+      g.strokeStyle = 'rgba(95,81,61,0.6)'; g.lineWidth = 1; g.beginPath(); g.moveTo(96, y + 60); g.lineTo(984, y + 60); g.stroke();
+      y += 96;
+    });
+    if (ids.length > rows.length) { g.fillStyle = GOLD; g.font = '400 24px "DM Mono", monospace'; spaced(g, `+ ${ids.length - rows.length} MORE`, 214, y - 20, 4, 'left'); y += 30; }
+    // footer, kept above the bottom 14% that story apps cover
+    const fy = Math.max(1540, y - 24);
+    g.strokeStyle = LINE; g.beginPath(); g.moveTo(96, fy); g.lineTo(984, fy); g.stroke();
+    g.fillStyle = TXT; g.font = '300 30px "Jost", sans-serif'; g.textAlign = 'left';
+    g.fillText(site.dateLabel, 96, fy + 50);
+    g.fillStyle = SAGE; g.font = '400 20px "DM Mono", monospace';
+    spaced(g, `KOLLAM ERA ${site.kollamEra} · ${site.venue.toUpperCase()}`, 96, fy + 88, 3, 'left');
+    g.fillStyle = 'rgba(168,181,175,0.6)'; g.font = '400 17px "DM Mono", monospace';
+    spaced(g, 'MY PLAN · NOT A TICKET', 984, fy + 50, 3, 'right');
+    return c;
+  }
+  let cardURL = '';
+  $('#myMake').addEventListener('click', async () => {
+    if (!picks.size) return;
+    const btn = $('#myMake');
+    btn.disabled = true;
+    try {
+      const c = await drawCard();
+      const blob = await new Promise((r) => c.toBlob(r, 'image/png'));
+      if (cardURL) URL.revokeObjectURL(cardURL);
+      cardURL = URL.createObjectURL(blob);
+      const img = $('#myPreview');
+      img.src = cardURL; img.alt = 'Your Yugantra story card'; img.hidden = false;
+      $('#myOut').hidden = false;
+      $('#mySave').href = cardURL;
+      $('#mySave').onclick = inViewer ? (e) => { e.preventDefault(); saveFile(blob, `my-yugantra-${site.edition}.png`).then((r) => { if (r === 'saved') toast('Story card saved'); else if (r === 'blocked') toast('Saving is not available here. Long-press the image instead'); }); } : null;
+      const file = new File([blob], `my-yugantra-${site.edition}.png`, { type: 'image/png' });
+      const share = $('#myShare');
+      share.hidden = !(navigator.canShare && navigator.canShare({ files: [file] }));
+      share.onclick = () => navigator.share({ files: [file], title: `My ${site.name} ${site.edition}` }).catch(() => {});
+      Sound.chime();
+    } catch (err) {
+      toast('Could not draw the card on this browser');
+    }
+    btn.disabled = false;
+  });
+
+  /* ------------------------------------------------------------------ *
+   * The terminal — the whole fest, queryable. Press / or Ctrl+K.         *
+   * ------------------------------------------------------------------ */
+  const term = $('#term'), tOut = $('#termOut'), tIn = $('#termIn'), tSug = $('#termSug');
+  const tHist = [];
+  let tHi = -1;
+  const norm = (x) => String(x).toLowerCase().replace(/[^a-z0-9]/g, '');
+  const col = (x, w) => { const t = String(x); return t.length >= w ? `${t.slice(0, w - 1)}… ` : t.padEnd(w); };
+  function tPrint(html, cls) {
+    const line = document.createElement('div');
+    line.className = `tline${cls ? ` ${cls}` : ''}`;
+    line.innerHTML = html;
+    tOut.appendChild(line);
+    tOut.scrollTop = tOut.scrollHeight;
+  }
+  const T = (x) => esc(x);
+  const tk = (x) => `<b class="tk">${T(x)}</b>`;
+  const tg = (x) => `<span class="tg">${T(x)}</span>`;
+  const tc = (x) => `<button type="button" class="tcmd" data-cmd="${T(x)}">${T(x)}</button>`;
+  function findEvents(q) {
+    const k = norm(q);
+    if (!k) return [];
+    const exact = D.events.filter((e) => norm(e.id) === k || norm(e.short) === k || norm(e.name) === k);
+    if (exact.length) return exact;
+    const pre = D.events.filter((e) => [e.id, e.short, e.name].some((v) => norm(v).startsWith(k)));
+    if (pre.length) return pre;
+    return D.events.filter((e) => [e.id, e.short, e.name, e.format].some((v) => norm(v).includes(k)));
+  }
+  function findTrack(q) {
+    const k = norm(q);
+    return D.ages.find((a) => [a.id, a.slug, a.track, a.domain, a.name].some((v) => norm(v) === k || norm(v).startsWith(k)));
+  }
+  const SECS = $$('#rail a').map((a) => ({ id: a.dataset.sec, label: a.textContent.trim() }));
+  function oneEvent(q, verb) {
+    const m = findEvents(q);
+    if (!q) { tPrint(`usage: ${verb} &lt;event&gt;   e.g. ${tc(`${verb} hackathon`)}`, 'dim'); return null; }
+    if (!m.length) { tPrint(`no event matches "${T(q)}". try ${tc('events')}`, 'err'); return null; }
+    if (m.length > 1) { tPrint(`"${T(q)}" matches ${m.length}: ${m.map((e) => tc(`${verb} ${e.id}`)).join(' ')}`, 'dim'); return null; }
+    return m[0];
+  }
+  const eventLine = (e) => `${tg(AGE[e.era].track.padEnd(15))}${col(e.name, 28)}${col(e.prize ? rupees(e.prize) : e.kind === 'competition' ? 'prize TBA' : e.kind, 12)}${T(whenLabel(e))}${e.status === 'tbc' ? ' <span class="err">tbc</span>' : ''}`;
+  const CMDS = {
+    help: { a: '', d: 'what you can type', run() {
+      Object.entries(CMDS).forEach(([k, c]) => tPrint(`${tc(k)}${' '.repeat(Math.max(1, 10 - k.length))}${tg(c.a.padEnd(11))}${T(c.d)}`));
+      tPrint('tab completes · ↑ ↓ history · esc closes', 'dim');
+    } },
+    events: { a: '[track]', d: 'every event, or one track\'s', run(q) {
+      const tr = q && findTrack(q);
+      if (q && !tr) { tPrint(`no track "${T(q)}". tracks: ${D.ages.map((a) => tc(`events ${a.slug}`)).join(' ')}`, 'err'); return; }
+      const list = tr ? eventsOf(tr.id) : DIAL_EVENTS;
+      list.forEach((e) => tPrint(eventLine(e)));
+      tPrint(`${list.length} event${list.length > 1 ? 's' : ''} · open one: ${tc(`open ${list[0].id}`)}`, 'dim');
+    } },
+    tracks: { a: '', d: 'the five tracks and their ages', run() {
+      D.ages.forEach((a) => tPrint(`${tk(a.count.padEnd(4))}${col(a.domain, 22)}${tg(a.alt.padEnd(16))}${eventsOf(a.id).length} events  ${tc(`events ${a.slug}`)}`));
+    } },
+    open: { a: '<event>', d: 'open an event\'s details', run(q) {
+      const e = oneEvent(q, 'open');
+      if (e) { tPrint(`opening ${tk(e.name)}`); setTimeout(() => openEvent(e.id), 120); }
+    } },
+    schedule: { a: '[day]', d: 'the running order', run(q) {
+      const days = q ? D.schedule.filter((d) => String(d.day) === q.replace(/\D/g, '')) : D.schedule;
+      if (!days.length) { tPrint(`days: ${D.schedule.map((d) => tc(`schedule ${d.day}`)).join(' ')}`, 'err'); return; }
+      days.forEach((d) => {
+        tPrint(`${tk(`Day ${d.day}`)} ${tg(weekday(d.date))}${site.scheduleIsProvisional ? ' <span class="dim">(provisional)</span>' : ''}`);
+        d.slots.forEach((sl) => tPrint(`  ${tk(sl[0])} ${tg(col(toGhati(sl[0]), 13))}${col(sl[1], 30)}${T(sl[2] === 'TBA' ? 'venue TBA' : sl[2])}`));
+      });
+    } },
+    prizes: { a: '', d: 'prize pools, biggest first', run() {
+      [...D.events].filter((e) => e.prize).sort((a, b) => b.prize - a.prize).forEach((e) => tPrint(`${tk(col(rupees(e.prize), 10))}${col(e.name, 28)}${e.split ? tg(e.split.map(rupees).join(' / ')) : ''}${e.status === 'tbc' ? ' <span class="err">tbc</span>' : ''}`));
+      tPrint(`confirmed total ${tk(rupees(confirmedPool))} (events marked tbc not counted)`, 'dim');
+    } },
+    fees: { a: '', d: 'entry fees and team sizes', run() {
+      DIAL_EVENTS.forEach((e) => tPrint(`${col(e.name, 28)}${tk(col(e.fee, 26))}${tg(`team ${e.teamLabel}`)}`));
+    } },
+    next: { a: '', d: 'what\'s live, or up next', run() {
+      const h = heldEvent(Date.now()), e = DIAL_EVENTS[h.i], t = DIAL_TIMES[h.i].start - Date.now();
+      const dd = Math.floor(t / 864e5), hh = Math.floor((t % 864e5) / 36e5), mm = Math.floor((t % 36e5) / 6e4);
+      tPrint(`${tk(h.live ? 'live now' : 'next up')} ${T(e.name)} · ${T(fmtWhen(DIAL_TIMES[h.i].start))}${site.scheduleIsProvisional ? ' (provisional)' : ''}`);
+      if (!h.live) tPrint(`in ${dd}d ${hh}h ${mm}m · ${tc(`open ${e.id}`)}`, 'dim');
+    } },
+    time: { a: '', d: 'now, in three calendars', run() {
+      const now = Date.now(), g = ghatiFraction(now) * 60;
+      tPrint(`${tk('IST')}      ${T(new Date(now).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'medium' }))}`);
+      tPrint(`${tk('ghati')}    ${Math.floor(g)} gh ${Math.floor((g % 1) * 60)} pa since 06:00 IST`);
+      tPrint(`${tk('fest')}     ${T(site.dateLabel)} · Kollam Era ${T(site.kollamEra)}`);
+    } },
+    go: { a: '<section>', d: 'jump to a part of the page', run(q) {
+      const k = norm(q);
+      const sec = SECS.find((x) => norm(x.id) === k || norm(x.label) === k) || SECS.find((x) => k && (norm(x.id).startsWith(k) || norm(x.label).startsWith(k)));
+      if (!sec) { tPrint(`sections: ${SECS.map((x) => tc(`go ${x.label.toLowerCase()}`)).join(' ')}`, 'dim'); return; }
+      closeTerm();
+      setTimeout(() => document.getElementById(sec.id).scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' }), 80);
+    } },
+    pick: { a: '<event>', d: 'add or remove from My Yuga', run(q) {
+      const e = oneEvent(q, 'pick');
+      if (e) { togglePick(e.id); tPrint(`${picks.has(e.id) ? '★ added' : '☆ removed'} ${tk(e.name)} · ${tc('mine')}`); }
+    } },
+    mine: { a: '', d: 'your plan, with clashes', run() {
+      const ids = sortedPicks();
+      if (!ids.length) { tPrint(`nothing picked yet. try ${tc('pick hackathon')}`, 'dim'); return; }
+      ids.forEach((id) => { const f = firstSlot(id); tPrint(`★ ${col(EVENTS[id].name, 28)}${tg(f ? slotLabel(f) : whenLabel(EVENTS[id]))}`); });
+      const cl = clashes();
+      cl.forEach(([x, y]) => tPrint(`clash: ${T(EVENTS[x.id].name)} overlaps ${T(EVENTS[y.id].name)} (${T(slotLabel(y))})`, 'err'));
+      tPrint(`${tc('ics')} to add them to your calendar`, 'dim');
+    } },
+    ics: { a: '', d: 'download your plan as a calendar', run() {
+      if (!picks.size) { tPrint(`pick something first: ${tc('pick hackathon')}`, 'dim'); return; }
+      saveIcs().then((r) => tPrint(r === 'saved' ? `saved yugantra-${T(site.edition)}.ics · ${SLOTS.filter((x) => x.id && picks.has(x.id)).length} sessions` : r === 'blocked' ? 'calendar export works on the live site, not in this preview' : 'not saved', r === 'saved' ? '' : 'dim'));
+    } },
+    play: { a: '', d: 'hear the whole fest as music', run() { closeTerm(); setTimeout(() => { $('#schedule').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' }); FestSound.start(); }, 80); } },
+    sound: { a: 'on|off', d: 'interface sounds', run(q) { setSound(!/off|0|no/i.test(q || '') && (q ? true : !Sound.on)); tPrint(`sound ${Sound.on ? 'on' : 'off'}`); } },
+    binary: { a: '<text>', d: 'text as 8-bit binary', run(q) {
+      const t = q || site.name.toUpperCase();
+      tPrint(T([...t].slice(0, 32).map((ch) => ch.charCodeAt(0).toString(2).padStart(8, '0')).join(' ')));
+    } },
+    register: { a: '', d: 'where to sign up', run() {
+      if (site.registerUrl) tPrint(`<a href="${T(site.registerUrl)}" target="_blank" rel="noopener">${T(site.registerUrl)}</a>`);
+      else tPrint(`registration opens ${T(site.registrationOpens)}. fees are paid at registration: ${tc('fees')}`);
+    } },
+    contact: { a: '', d: 'how to reach the team', run() { tPrint(`${tk(site.email)} · or ${tc('go contact')}`); } },
+    clear: { a: '', d: 'clear the screen', run() { tOut.innerHTML = ''; } },
+    exit: { a: '', d: 'close the terminal', run() { closeTerm(); } }
+  };
+  function tRun(line) {
+    const raw = line.trim();
+    tPrint(`<span class="tps">yugantra@${T(site.edition)}:~$</span> ${T(raw)}`, 'cmd');
+    if (!raw) return;
+    if (tHist[tHist.length - 1] !== raw) tHist.push(raw);
+    tHi = tHist.length;
+    const [c0, ...rest] = raw.split(/\s+/);
+    const name = c0.toLowerCase();
+    const cmd = CMDS[name] || CMDS[Object.keys(CMDS).find((k) => k.startsWith(name) && name.length >= 2)];
+    if (!cmd) { tPrint(`unknown command "${T(c0)}". ${tc('help')}`, 'err'); return; }
+    try { cmd.run(rest.join(' ')); } catch (err) { tPrint('something broke. try again.', 'err'); }
+    Sound.tick(1500, 0.03, 0.03);
+  }
+  function tSuggest() {
+    const v = tIn.value;
+    const [c0 = '', ...rest] = v.trimStart().split(/\s+/);
+    let opts = [];
+    if (!rest.length) opts = Object.keys(CMDS).filter((k) => k.startsWith(c0.toLowerCase())).map((k) => k);
+    else {
+      const arg = rest.join(' ');
+      const cmd = c0.toLowerCase();
+      if (['open', 'pick'].includes(cmd)) opts = findEvents(arg || ' ').concat(arg ? [] : D.events).slice(0, 6).map((e) => `${cmd} ${e.id}`);
+      else if (cmd === 'events') opts = D.ages.filter((a) => a.slug.startsWith(arg.toLowerCase())).map((a) => `events ${a.slug}`);
+      else if (cmd === 'go') opts = SECS.filter((x) => x.label.toLowerCase().startsWith(arg.toLowerCase())).map((x) => `go ${x.label.toLowerCase()}`);
+      else if (cmd === 'schedule') opts = D.schedule.map((d) => `schedule ${d.day}`);
+      else if (cmd === 'sound') opts = ['sound on', 'sound off'];
+    }
+    tSug.innerHTML = v.trim() ? opts.slice(0, 7).map(tc).join('') : ['help', 'events', 'next', 'prizes', 'open hackathon', 'schedule 1', 'mine'].map(tc).join('');
+    return opts;
+  }
+  function openTerm() {
+    if (!term.showModal || term.open) return;
+    if (!tOut.childElementCount) {
+      tPrint(`<span class="tbig">YUGANTRA ${T(site.edition)}</span> · where tech defines the <span lang="ml" class="tml">യുഗം</span>`);
+      tPrint(`${D.events.length} events · ${D.ages.length} tracks · ${days} days · ${rupees(confirmedPool)} confirmed prizes`, 'dim');
+      tPrint(`type ${tc('help')}, or try ${tc('events code')} ${tc('open hackathon')} ${tc('next')} ${tc('schedule 2')}`);
+    }
+    if (menuOpen) setMenu(false);
+    root.classList.add('dlg-open');
+    term.showModal();
+    tSuggest();
+    setTimeout(() => tIn.focus(), 30);
+    Sound.chime();
+  }
+  function closeTerm() { if (term.open) term.close(); }
+  term.addEventListener('close', () => { if (!dlg.open && !myDlg.open) root.classList.remove('dlg-open'); });
+  term.addEventListener('click', (e) => {
+    if (e.target === term) { closeTerm(); return; }
+    const b = e.target.closest('.tcmd');
+    if (b) { const c = b.dataset.cmd; tIn.value = ''; tRun(c); tSuggest(); tIn.focus(); }
+  });
+  $('#termClose').addEventListener('click', closeTerm);
+  $('#termForm').addEventListener('submit', (e) => { e.preventDefault(); const v = tIn.value; tIn.value = ''; tRun(v); tSuggest(); });
+  tIn.addEventListener('input', tSuggest);
+  tIn.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const opts = tSuggest();
+      if (opts[0]) { tIn.value = `${opts[0]}${CMDS[opts[0]] && CMDS[opts[0]].a ? ' ' : ''}`; tSuggest(); }
+    } else if (e.key === 'ArrowUp' && tHist.length) {
+      e.preventDefault(); tHi = Math.max(0, tHi - 1); tIn.value = tHist[tHi] || '';
+    } else if (e.key === 'ArrowDown' && tHist.length) {
+      e.preventDefault(); tHi = Math.min(tHist.length, tHi + 1); tIn.value = tHist[tHi] || '';
+    }
+  });
+  $('#termBtn').addEventListener('click', openTerm);
+  document.addEventListener('click', (e) => { const t = e.target.closest('[data-term]'); if (t) { e.preventDefault(); openTerm(); } });
+  addEventListener('keydown', (e) => {
+    const typing = e.target.closest && e.target.closest('input, textarea, select, [contenteditable]');
+    if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) { e.preventDefault(); term.open ? closeTerm() : openTerm(); return; }
+    if (e.key === '/' && !typing && !document.querySelector('dialog[open]')) { e.preventDefault(); openTerm(); }
+  });
+
+  /* ------------------------------------------------------------------ *
+   * Hear the fest — the schedule played in raga Mechakalyani            *
+   *   time   the ribbon's timeline (nights compressed), ~20 seconds     *
+   *   notes  every session is a plucked note; its track sets the pitch  *
+   *          (Code Sa', Business Pa, Culture Ga…, Cyber Ri, Showcase Sa) *
+   *   beat   a soft drum on every hour something is on (the rim's cam)  *
+   *   drone  a tanpura, Pa–Sa–Sa–Sa, synthesised (Karplus–Strong)      *
+   * ------------------------------------------------------------------ */
+  const FestSound = (() => {
+    const SCALE = [0, 2, 4, 6, 7, 9, 11];            // Mechakalyani, melakarta 65: S R2 G3 M2 P D2 N3
+    const SARGAM = ['Sa', 'Ri', 'Ga', 'Ma', 'Pa', 'Dha', 'Ni'];
+    const TONIC = 138.59;                            // C#3, a common tanpura Sa
+    const BASE = { krita: 7, treta: 4, dvapara: 2, kali: 1, yugantra: 0 };
+    const PAN = [-0.5, -0.22, 0.05, 0.3, 0];
+    const DUR = 20;
+    const btn = $('#playFest'), label = $('#playLabel'), cap = $('#playCap');
+    const capText = cap.innerHTML;
+    let ctx = null, master = null, playing = false, t0 = 0, cues = [], nodes = [], endTimer = 0, focusIdx = -1, handA = null, lastKey = '';
+    const cache = new Map();
+    function ks(freq, secs, damp, buzz) {
+      const sr = ctx.sampleRate, n = Math.floor(sr * secs);
+      const buf = ctx.createBuffer(1, n, sr), d = buf.getChannelData(0);
+      const N = Math.max(2, Math.round(sr / freq)), line = new Float32Array(N);
+      let lp = 0;
+      for (let i = 0; i < N; i++) { lp = lp * 0.5 + (Math.random() * 2 - 1) * 0.5; line[i] = lp; }
+      const norm = buzz ? Math.tanh(buzz) : 1;
+      for (let i = 0, k = 0; i < n; i++) {
+        const a = line[k], b = line[(k + 1) % N];
+        line[k] = damp * 0.5 * (a + b);
+        k = (k + 1) % N;
+        const y = buzz ? Math.tanh(a * buzz) / norm : a;
+        d[i] = y * Math.min(1, i / 64) * (i > n - 2000 ? (n - i) / 2000 : 1);
+      }
+      return buf;
+    }
+    function buffer(freq, secs, damp, buzz) {
+      const key = `${freq.toFixed(2)}|${secs}|${damp}|${buzz}`;
+      if (!cache.has(key)) cache.set(key, ks(freq, secs, damp, buzz));
+      return cache.get(key);
+    }
+    function voice(buf, when, gain, pan, lowpass) {
+      const src = ctx.createBufferSource(), g = ctx.createGain();
+      src.buffer = buf; g.gain.value = gain;
+      let tail = g;
+      if (lowpass) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = lowpass; g.connect(f); tail = f; }
+      if (ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = pan; tail.connect(p); p.connect(master); } else tail.connect(master);
+      src.connect(g); src.start(when); nodes.push(src);
+    }
+    function drum(when, strong) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(strong ? 120 : 170, when);
+      o.frequency.exponentialRampToValueAtTime(strong ? 52 : 80, when + 0.2);
+      g.gain.setValueAtTime(0.0001, when);
+      g.gain.exponentialRampToValueAtTime(strong ? 0.28 : 0.09, when + 0.006);
+      g.gain.exponentialRampToValueAtTime(0.0001, when + (strong ? 0.4 : 0.22));
+      o.connect(g); g.connect(master); o.start(when); o.stop(when + 0.45); nodes.push(o);
+    }
+    const noteFor = (step) => {
+      const oct = Math.floor(step / 7), deg = ((step % 7) + 7) % 7;
+      return { f: TONIC * 2 * Math.pow(2, (oct * 12 + SCALE[deg]) / 12), name: `${SARGAM[deg]}${oct > 0 ? "'" : ''}` };
+    };
+    function build() {
+      const { X, TOTAL_W, items } = ribbonMap;
+      const T = (h) => (X(h) / TOTAL_W) * DUR;
+      cues = items.map((it) => {
+        const [time, title, , era, evId] = it.slot;
+        const ev = evId && EVENTS[evId];
+        const age = ev ? ev.era : era;
+        const k = ev ? eventsOf(age).indexOf(ev) : 0;
+        const steps = ev ? [BASE[age] + k] : [0, 7];
+        return { t: T(it.start), h: it.start, day: it.d.day, time, title, ev, age, notes: steps.map(noteFor) };
+      }).sort((a, b) => a.t - b.t);
+      const beats = [];
+      for (let h = 0; h < days * 24; h++) {
+        const on = items.some((it) => it.start < h + 1 && it.end > h);
+        if (on) beats.push({ t: T(h), strong: h % 24 === 8 || !items.some((it) => it.start < h && it.end > h - 1) });
+      }
+      return beats;
+    }
+    function setUI(on) {
+      btn.setAttribute('aria-pressed', String(on));
+      label.textContent = on ? 'Stop' : 'Hear the fest';
+      const ph = $('#rbPlay'); if (ph) ph.hidden = !on;
+      if (!on) { cap.innerHTML = capText; $$('.rb-bar.sounding').forEach((b) => b.classList.remove('sounding')); focusIdx = -1; handA = null; lastKey = ''; }
+    }
+    function start() {
+      if (playing) { stop(); return; }
+      if (!ribbonMap || !Sound.ensure()) return;
+      ctx = Sound.ctx;
+      master = ctx.createGain();
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -16; comp.ratio.value = 3;
+      master.connect(comp); comp.connect(ctx.destination);
+      const beats = build();
+      const now = ctx.currentTime + 0.2;
+      t0 = now + 1.2; // the drone speaks first
+      master.gain.setValueAtTime(0.0001, now);
+      master.gain.exponentialRampToValueAtTime(0.85, now + 0.6);
+      // tanpura: Pa (mandra) – Sa – Sa – Sa (mandra), every 0.6 s
+      const strings = [TONIC * 0.75, TONIC, TONIC, TONIC / 2];
+      for (let t = now, k = 0; t < t0 + DUR + 3; t += 0.6, k++) voice(buffer(strings[k % 4], 4.5, 0.9985, 2.4), t, 0.1, (k % 2 ? 0.25 : -0.25), 2600);
+      beats.forEach((b) => drum(t0 + b.t, b.strong));
+      let lastT = -1, strum = 0;
+      cues.forEach((c) => {
+        strum = Math.abs(c.t - lastT) < 0.05 ? strum + 0.045 : 0;
+        lastT = c.t;
+        c.notes.forEach((n, i) => voice(buffer(n.f, 2.6, 0.9965, 0), t0 + c.t + strum + i * 0.03, 0.42 / c.notes.length ** 0.5, PAN[AGE[c.age].index] || 0, 5200));
+      });
+      // resolve on Sa, Pa, Sa'
+      [0, 4, 7].forEach((st, i) => voice(buffer(noteFor(st).f, 3.4, 0.997, 0), t0 + DUR + 0.35 + i * 0.07, 0.3, (i - 1) * 0.3, 4200));
+      playing = true;
+      setUI(true);
+      clearTimeout(endTimer);
+      endTimer = setTimeout(() => stop(true), (t0 - ctx.currentTime + DUR + 3.6) * 1000);
+    }
+    function stop() {
+      if (!playing) return;
+      playing = false;
+      clearTimeout(endTimer);
+      const m = master, list = nodes;
+      nodes = [];
+      try {
+        m.gain.cancelScheduledValues(ctx.currentTime);
+        m.gain.setValueAtTime(Math.max(0.0001, m.gain.value), ctx.currentTime);
+        m.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+      } catch (_) { /* already silent */ }
+      setTimeout(() => { list.forEach((n) => { try { n.stop(); } catch (_) { /* done */ } }); try { m.disconnect(); } catch (_) { /* gone */ } }, 450);
+      setUI(false);
+    }
+    function frame() {
+      if (!playing || !ctx) return;
+      const el = ctx.currentTime - t0;
+      const p = clamp(el / DUR, 0, 1);
+      const ph = $('#rbPlay');
+      if (ph) ph.style.left = `${(p * 100).toFixed(3)}%`;
+      // the hour under the playhead, from the ribbon's own map
+      let cur = null;
+      for (const c of cues) { if (c.t <= el + 0.02) cur = c; else break; }
+      const { X, TOTAL_W } = ribbonMap;
+      let lo = 0, hi = days * 24;
+      for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; if ((X(mid) / TOTAL_W) < p) lo = mid; else hi = mid; }
+      const hNow = lo;
+      handA = (((hNow % 24) - 6 + 24) % 24) / 24 * TAU;
+      $$('.rb-bar[data-h0]').forEach((b) => b.classList.toggle('sounding', el >= 0 && Number(b.dataset.h0) <= hNow && Number(b.dataset.h1) > hNow));
+      // caption: the clock under the playhead, then what just started or what is running
+      const q = Math.floor((hNow % 24) * 4) / 4, dayN = Math.min(days, Math.floor(hNow / 24) + 1);
+      const clockTxt = `Day ${dayN} · ${pad(Math.floor(q))}:${pad(Math.round((q % 1) * 60))}`;
+      const fresh = cur && hNow - cur.h < 1.25;
+      const running = ribbonMap.items.filter((it) => it.start <= hNow && it.end > hNow).map((it) => (it.slot[4] && EVENTS[it.slot[4]].short) || it.slot[1]);
+      const key = `${clockTxt}|${fresh ? cur.title : running.join()}`;
+      if (key !== lastKey) {
+        lastKey = key;
+        if (fresh) focusIdx = cur.ev ? DIAL_INDEX[cur.ev.id] : -1;
+        cap.innerHTML = el < 0 ? '<b class="pc-t">Tanpura</b> Pa · Sa · Sa · Sa'
+          : fresh ? `<b class="pc-t">${clockTxt}</b> ${esc(cur.title)} <span class="pc-n">${figSVG(AGE[cur.age].index)}${cur.notes.map((n) => esc(n.name)).join(' + ')}</span>`
+          : `<b class="pc-t">${clockTxt}</b> ${running.length ? `${esc([...new Set(running)].join(' · '))} <span class="pc-q">running</span>` : '<span class="pc-q">quiet · the drone holds</span>'}`;
+      }
+    }
+    btn.addEventListener('click', start);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); });
+    return { start, stop, frame, get playing() { return playing; }, focus: () => (playing ? focusIdx : -1), hand: () => (playing ? handA : null) };
+  })();
+
   /* cards you can pick up: goodies and the pass tilt toward the pointer */
   let tiltEl = null;
   const resetTilt = (el) => { el.classList.remove('tilting'); ['--rx', '--ry'].forEach((p) => el.style.removeProperty(p)); };
@@ -1372,6 +2036,102 @@
   menuBtn.addEventListener('click', () => setMenu(!menuOpen));
   menu.addEventListener('click', (e) => { if (e.target.closest('a')) setMenu(false); });
   addEventListener('keydown', (e) => { if (e.key === 'Escape' && menuOpen) { setMenu(false); menuBtn.focus(); } });
+
+  /* ------------------------------------------------------------------ *
+   * Feel: gliding scroll, rising headings, magnetic buttons, decoding   *
+   * ------------------------------------------------------------------ */
+  // Wheel input glides to its target. The real scroll position is still used,
+  // so sticky elements, anchors, the keyboard and the scrollbar all behave natively.
+  const smooth = { on: fine && !reduced, target: 0, cur: 0, active: false, lastSet: -1 };
+  function scrollableParent(el, dy) {
+    for (; el && el.nodeType === 1 && el !== document.body && el !== root; el = el.parentElement) {
+      const oy = getComputedStyle(el).overflowY;
+      if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight + 1) {
+        if ((dy < 0 && el.scrollTop > 0) || (dy > 0 && el.scrollTop + el.clientHeight < el.scrollHeight - 1)) return el;
+      }
+    }
+    return null;
+  }
+  addEventListener('wheel', (e) => {
+    if (!smooth.on || e.ctrlKey || e.defaultPrevented || root.classList.contains('lock') || document.querySelector('dialog[open]')) return;
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+    const dy = e.deltaY * (e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? innerHeight : 1);
+    if (scrollableParent(e.target, dy)) return;
+    e.preventDefault();
+    if (!smooth.active) { smooth.target = smooth.cur = scrollY; smooth.lastSet = -1; }
+    smooth.target = clamp(smooth.target + dy, 0, root.scrollHeight - innerHeight);
+    smooth.active = true;
+  }, { passive: false });
+  function smoothStep(dt) {
+    if (!smooth.active) return;
+    if (smooth.lastSet >= 0 && Math.abs(scrollY - smooth.lastSet) > 2) { smooth.active = false; return; } // keyboard or scrollbar took over
+    smooth.cur = damp(smooth.cur, smooth.target, 9, dt);
+    if (Math.abs(smooth.target - smooth.cur) < 0.5) { smooth.cur = smooth.target; smooth.active = false; }
+    window.scrollTo({ top: smooth.cur, behavior: 'instant' });
+    smooth.lastSet = smooth.active ? scrollY : -1;
+  }
+
+  // Section headings rise out of a mask, word by word.
+  function splitHeading(h) {
+    if (h.dataset.split || reduced) return;
+    h.dataset.split = '1';
+    let i = 0;
+    const word = (content) => {
+      const o = document.createElement('span'); o.className = 'wl';
+      const n = document.createElement('span'); n.className = 'wi'; n.style.setProperty('--i', i++);
+      if (typeof content === 'string') n.textContent = content; else n.appendChild(content);
+      o.appendChild(n);
+      return o;
+    };
+    [...h.childNodes].forEach((node) => {
+      if (node.nodeType === 3) {
+        const frag = document.createDocumentFragment();
+        node.textContent.split(/(\s+)/).forEach((part) => {
+          if (!part) return;
+          frag.appendChild(/^\s+$/.test(part) ? document.createTextNode(part) : word(part));
+        });
+        node.replaceWith(frag);
+      } else if (node.nodeType === 1 && !node.classList.contains('sr')) {
+        const holder = document.createElement('span');
+        node.replaceWith(holder);
+        holder.replaceWith(word(node));
+      }
+    });
+  }
+  const headIO = new IntersectionObserver((entries) => {
+    entries.forEach((en) => { if (en.isIntersecting) { en.target.classList.add('split-in'); headIO.unobserve(en.target); } });
+  }, { threshold: 0.25 });
+  function initHeadings() {
+    $$('.h2').forEach((h) => { splitHeading(h); if (!reduced) headIO.observe(h); });
+  }
+
+  // Buttons lean toward the pointer.
+  let magEl = null;
+  document.addEventListener('pointermove', (e) => {
+    if (!fine || reduced || e.pointerType === 'touch') return;
+    const el = e.target.closest ? e.target.closest('.btn, .snd, .menu-btn') : null;
+    if (magEl && magEl !== el) { magEl.style.transform = ''; magEl = null; }
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const dx = (e.clientX - (r.left + r.width / 2)) / r.width, dy = (e.clientY - (r.top + r.height / 2)) / r.height;
+    el.style.transform = `translate3d(${(dx * 10).toFixed(1)}px, ${(dy * 7).toFixed(1)}px, 0)`;
+    magEl = el;
+  }, { passive: true });
+
+  // Nav labels decode from binary, left to right.
+  function decodeText(el) {
+    if (reduced || el._dec) return;
+    const final = el.dataset.text || (el.dataset.text = el.textContent);
+    let k = 0;
+    el._dec = true;
+    const step = () => {
+      k++;
+      el.textContent = [...final].map((c, i) => (i < k / 2 || c === ' ' ? c : Math.random() < 0.5 ? '0' : '1')).join('');
+      if (k / 2 < final.length) setTimeout(step, 26); else { el.textContent = final; el._dec = false; }
+    };
+    step();
+  }
+  $$('.nav-links a').forEach((a) => a.addEventListener('pointerenter', () => decodeText(a)));
 
   const navLinks = $$('.nav-links a');
   const railLinks = $$('#rail a');
@@ -1552,7 +2312,10 @@
         if (s.width > 40) return { x: s.left + s.width / 2, y: s.top + s.height / 2, r: (s.width / 2) * 0.97, o: 1, t: EMERALD };
         return { x: w * 0.5, y: h * 0.5, r: Math.max(w, h) * 0.85, o: 0.06, t: EMERALD };
       }
-      case 'schedule': return portrait ? { x: w * 0.5, y: h * 0.2, r: w * 0.7, o: 0.1, t: EMERALD } : { x: w * 0.04, y: h * 0.55, r: h * 0.7, o: 0.14, t: EMERALD };
+      case 'schedule': {
+        const lit = FestSound.playing ? 3.2 : 1;
+        return portrait ? { x: w * 0.5, y: h * 0.2, r: w * 0.7, o: 0.1 * lit, t: EMERALD } : { x: w * 0.04, y: h * 0.55, r: h * 0.7, o: 0.14 * lit, t: EMERALD };
+      }
       case 'stage': return { x: w * 0.5, y: h * 0.55, r: Math.min(w, h) * 0.5, o: 0.22, t: BURGUNDY };
       case 'partners': return { x: w * 0.92, y: h * 0.3, r: h * 0.55, o: 0.14, t: EMERALD };
       case 'faq': return { x: w * 0.1, y: h * 0.62, r: h * 0.48, o: 0.12, t: EMERALD };
@@ -1560,7 +2323,7 @@
     }
   }
 
-  const cur = { x: 0, y: 0, r: 0, o: 1, t: EMERALD.slice(), light: -0.6 };
+  const cur = { x: 0, y: 0, r: 0, o: 1, t: EMERALD.slice(), light: -0.6, px: 0.9, py: -0.9 };
   let first = true;
   const acc = { centre: 0, rim: 0 }, spinTo = { centre: 4, wheel: -7, rim: 3 };
   const rot = [0, 0, 0, 0, 0, 0];
@@ -1876,6 +2639,7 @@
     const dt = Math.min(0.05, Math.max(0.0001, dtRaw));
     last = now;
     clock += dt;
+    smoothStep(dt);
     const y = scrollY;
     measure();
 
@@ -1903,6 +2667,7 @@
     updateSpot(M.big);
     updateClock();
     updateMarks();
+    FestSound.frame();
 
     if (mq.wa && !reduced) {
       const sp = 46 + Math.min(1600, Math.abs(vel)) * 0.35;
@@ -1971,6 +2736,8 @@
         else if (pageFocus.ev != null) { fa = fb = pageFocus.ev; figure = AGE[DIAL_EVENTS[pageFocus.ev].era].index; capKind = 'ev'; capI = pageFocus.ev; }
         amt = 1;
       }
+      const pf = FestSound.focus();
+      if (pf >= 0) { fa = fb = pf; figure = AGE[DIAL_EVENTS[pf].era].index; amt = 1; capKind = 'ev'; capI = pf; }
       if (hoverIdx >= 0) { fa = fb = hoverIdx; figure = AGE[DIAL_EVENTS[hoverIdx].era].index; amt = 1; turn = false; capKind = 'ev'; capI = hoverIdx; }
       if (turn) { const t = wheelFor(fa, fb); wheelTarget = t + TAU * Math.round((wheelBase - t) / TAU); }
       setShape(figure);
@@ -1997,17 +2764,28 @@
       const ms = Math.floor((((-wheel % TAU) + TAU) % TAU) / DIAL_STEP);
       if (ms !== lastMarkerSector) { if (lastMarkerSector >= 0 && cur.o > 0.5 && bootV >= 1) Sound.tick(2100, 0.025, 0.03); lastMarkerSector = ms; }
 
+      // the lamp over the engraving: the pointer on desktop, the tilt (or a slow orbit) on phones
+      let lpx, lpy;
+      const Rn = Math.max(1, cur.r * introScale);
+      if (fine && pointer.seen) { lpx = (pointer.x - cur.x) / Rn; lpy = (pointer.y - cur.y) / Rn; }
+      else if (tilt.on) { lpx = tilt.x * 1.4; lpy = tilt.y * 1.4; }
+      else { lpx = Math.cos(clock * 0.35) * 1.1; lpy = Math.sin(clock * 0.35) * 0.9 - 0.3; }
+      const ll = Math.hypot(lpx, lpy);
+      if (ll > 2.2) { lpx *= 2.2 / ll; lpy *= 2.2 / ll; }
+      cur.px = damp(cur.px, lpx, 7, dt); cur.py = damp(cur.py, lpy, 7, dt);
+
       updateLens(dt);
       if (needResize) { dial.resize(W, canvasH(), dpr); needResize = false; }
       dial.render({
         dpr, time: clock, scroll: y,
         cx: cur.x, cy: cur.y, radius: cur.r * introScale, opacity: cur.o,
         rot, shapeA: shape.a, shapeB: shape.b, shapeMix: shape.mix,
-        light: cur.light, hand: ghatiFraction(wall) * TAU,
+        light: cur.light, hand: FestSound.hand() ?? ghatiFraction(wall) * TAU,
         lx: lens.x, ly: lens.y, lr: lens.r, lensAmt: clamp(lens.r / 12, 0, 1),
         tint: cur.t, grain: 0.035,
         focusA: texReady ? fa : -1, focusB: fb, focusAmt: amt, sectors: DIAL_EVENTS.length,
-        boot: bootV, explode, tilt: [0.95 * explode, -0.42 * explode]
+        boot: bootV, explode, tilt: [0.95 * explode, -0.42 * explode],
+        ptr: [cur.px, cur.py], relief: 1
       });
 
       const quiet = ready && !document.hidden && dtRaw < 0.25 && Math.abs(vel) < 20 && explode < 0.01;
@@ -2044,6 +2822,7 @@
   renderPartners();
   renderFaq();
   initReach();
+  initHeadings();
   initReadouts();
   resize();
   initReveal();
@@ -2052,4 +2831,11 @@
   addEventListener('resize', () => { clearTimeout(rT); rT = setTimeout(() => { if (resize()) renderRibbon(); }, 120); });
   runIntro();
   requestAnimationFrame(loop);
+
+  // Installable, and usable offline at the venue (only on the deployed site, never in previews).
+  try {
+    if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && $('link[rel="manifest"]')) {
+      addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
+  } catch (_) { /* sandboxed: no service worker */ }
 })();

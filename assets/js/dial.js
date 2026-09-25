@@ -367,6 +367,9 @@
     uniform vec2 uRotB;   // band 5, band 0
     uniform vec3 uLens;   // x, y, radius (device px)
     uniform vec3 uTint;
+    uniform vec2 uPtr;    // the light: pointer position in dial units (y down)
+    uniform float uTexel; // one texel of the dial texture, in dial units
+    uniform float uRelief;
     uniform sampler2D uTexA;
     uniform sampler2D uTexF;
 
@@ -393,15 +396,19 @@
     // given explicitly so mip selection never sees the jump between rotating bands
     // (no seams), and are tightened slightly (SHARP) so type stays crisp in motion.
     const float SHARP = 0.8;
-    vec3 dialTex(sampler2D tex, vec2 p, float pxs){
-      float r = length(p);
-      if (r > 1.0) return vec3(0.0);
-      float a = -bandAngle(r);
+    vec3 dialTexAt(sampler2D tex, vec2 p, float a, float pxs){
       vec2 q = rot(p, a);
       vec2 gx = rot(vec2(pxs, 0.0), a) * (0.4925 * SHARP);
       vec2 gy = rot(vec2(0.0, pxs), a) * (0.4925 * SHARP);
       return TEXGRAD(tex, 0.5 + q * 0.4925, gx, gy).rgb;
     }
+    vec3 dialTex(sampler2D tex, vec2 p, float pxs){
+      float r = length(p);
+      if (r > 1.0) return vec3(0.0);
+      return dialTexAt(tex, p, -bandAngle(r), pxs);
+    }
+    // Engraving height: lines and type stand proud of the plate, fills sit a little above it.
+    float relH(vec3 m){ return m.r + m.g * 0.85 + m.b * 0.22; }
     // 1 inside the focused sectors (an event or a whole track), in the tracks, events and prize bands
     float focusMask(vec2 p){
       if (uFocusA < 0.0) return 0.0;
@@ -484,12 +491,30 @@
       float sheen = pow(c, 3.0);
       float glint = pow(c, 42.0);
       vec3 metal = mix(GOLD * 0.82, GOLDHI, sheen * 0.65 + glint * 0.5);
-      vec3 m = dialTex(uTexA, q, pxs) * uHasTex;
+      float rq = length(q);
+      vec3 m = vec3(0.0);
+      vec3 N = vec3(0.0, 0.0, 1.0);
+      if (rq <= 1.0 && uHasTex > 0.5) {
+        float ang = -bandAngle(rq);
+        m = dialTexAt(uTexA, q, ang, pxs);
+        // relief: the surface normal from two neighbouring height samples (screen-aligned)
+        float e = max(pxs, uTexel) * 1.3;
+        float h0 = relH(m);
+        float hx = relH(dialTexAt(uTexA, q + vec2(e, 0.0), ang, pxs)) - h0;
+        float hy = relH(dialTexAt(uTexA, q + vec2(0.0, e), ang, pxs)) - h0;
+        N = normalize(vec3(-hx * 2.4 * uRelief, -hy * 2.4 * uRelief, 1.0));
+      }
+      // the pointer is a lamp held just above the plate
+      vec3 Lv = normalize(vec3(uPtr - q, 0.75));
+      float lam = max(dot(N, Lv), 0.0);
+      float spec = pow(max(dot(N, normalize(Lv + vec3(0.0, 0.0, 1.0))), 0.0), 56.0);
+      float lit = mix(1.0, 0.62 + 0.62 * lam, uRelief);
       float hv = focusMask(q) * uHasTex;
-      vec3 col = metal * (m.r * (0.5 + 0.55 * sheen + 0.9 * glint) + m.g * (0.72 + 0.5 * sheen + 0.6 * glint));
-      col += EMERALD * m.b * (0.8 + 0.6 * sheen);
+      vec3 col = metal * (m.r * (0.5 + 0.55 * sheen + 0.9 * glint) + m.g * (0.72 + 0.5 * sheen + 0.6 * glint)) * lit;
+      col += GOLDHI * spec * clamp(m.r + m.g, 0.0, 1.0) * 0.75 * uRelief;
+      col += EMERALD * m.b * (0.8 + 0.6 * sheen) * mix(1.0, 0.75 + 0.4 * lam, uRelief);
       col = col * (1.0 + 0.9 * hv) + GOLD * 0.1 * hv;
-      if (b < 0.5) col += metal * glyphMix(q, w, aa) * (0.95 + 0.5 * glint) * step(0.5, uBoot * 6.6);
+      if (b < 0.5) col += metal * glyphMix(q, w, aa) * (0.95 + 0.5 * glint) * step(0.5, uBoot * 6.6) * mix(1.0, 0.7 + 0.55 * max(normalize(vec3(uPtr - q, 0.75)).z, 0.0), uRelief);
       if (b > 2.5 && b < 3.5) {
         col += GOLDHI * hand(q, w, aa) * 0.9;
         col += GOLDHI * marker(q, aa) * uHasTex;
@@ -603,7 +628,7 @@
     }
 
     let prog, uni = {}, texA, texF, hasTex = 0, recipe = null, texSize = 0;
-    const NAMES = ['uRes', 'uDpr', 'uTime', 'uRadius', 'uOpacity', 'uShapeA', 'uShapeB', 'uShapeMix', 'uLight', 'uHand', 'uLensAmt', 'uGrain', 'uHasTex', 'uScroll', 'uFocusA', 'uFocusB', 'uFocusAmt', 'uN', 'uBoot', 'uExplode', 'uTilt', 'uCenter', 'uRotA', 'uRotB', 'uLens', 'uTint', 'uTexA', 'uTexF'];
+    const NAMES = ['uRes', 'uDpr', 'uTime', 'uRadius', 'uOpacity', 'uShapeA', 'uShapeB', 'uShapeMix', 'uLight', 'uHand', 'uLensAmt', 'uGrain', 'uHasTex', 'uScroll', 'uFocusA', 'uFocusB', 'uFocusAmt', 'uN', 'uBoot', 'uExplode', 'uTilt', 'uCenter', 'uRotA', 'uRotB', 'uLens', 'uTint', 'uTexA', 'uTexF', 'uPtr', 'uTexel', 'uRelief'];
 
     function makeTex() {
       const t = gl.createTexture();
@@ -705,6 +730,9 @@
         gl.uniform1f(uni.uBoot, s.boot == null ? 1 : s.boot);
         gl.uniform1f(uni.uExplode, s.explode || 0);
         gl.uniform2f(uni.uTilt, s.tilt ? s.tilt[0] : 0, s.tilt ? s.tilt[1] : 0);
+        gl.uniform2f(uni.uPtr, s.ptr ? s.ptr[0] : 0.8, s.ptr ? s.ptr[1] : -0.8);
+        gl.uniform1f(uni.uTexel, texSize ? 1 / (0.4925 * texSize) : 0.001);
+        gl.uniform1f(uni.uRelief, s.relief == null ? 1 : s.relief);
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       }
     };

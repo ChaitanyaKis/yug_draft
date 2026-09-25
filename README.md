@@ -2,7 +2,7 @@
 
 **Where tech defines the യുഗം.** This is the website for Yugantra 2026, a tech fest themed *Ancient Eras × Future Technology*.
 
-The site is static and has no dependencies: plain HTML, CSS and JavaScript, plus one WebGL shader. There is no framework and no build step to deploy. The only external request is Google Fonts.
+The site is static and has no dependencies: plain HTML, CSS and JavaScript, plus one WebGL shader. There is no framework and no build step to deploy. The only external request is Google Fonts. Deployed as a folder, it installs as an app and works offline.
 
 ## The rule
 
@@ -57,6 +57,25 @@ Nothing on the page is decoration. Every figure, tick, dot, ring, sound and moti
 - **Partners.** The three tiers with their slot counts, plus the CSAI association. "Request the deck" opens the contact form with the Partnerships topic selected.
 - **Contact.** The form checks the fields and composes an email to `site.email` in the visitor's mail app. If no mail app opens, it offers to copy the message. No data is sent anywhere.
 
+**For the visitor:**
+- **My Yuga.** Star any event: on its card, in the fee table, or in its details. The star in the nav opens your plan:
+  - It lists your events in time order.
+  - It flags clashes on the provisional schedule (for example, the 24-hour hackathon against anything on Day 1 afternoon).
+  - **Add to calendar** downloads an `.ics` with every session of every picked event.
+  - **Make my story card** draws a 1080 × 1920 image: your events lit on the fest wheel, the list, and the dates. Content stays clear of the top and bottom bands that story apps cover. It's marked "My plan · not a ticket". On phones that support it, **Share** sends it straight to Instagram or WhatsApp.
+  - Your plan is kept in the browser. Nothing is sent anywhere.
+- **The terminal.** Press `/` (or Ctrl/⌘+K, the `>_` button, or Terminal in the menu). It has tab completion, history, and clickable suggestions. Commands:
+  - `events [track]`, `tracks`, `open <event>`, `schedule [day]`, `prizes`, `fees`
+  - `next`, `time` (IST, ghatis, Kollam Era), `go <section>`, `register`, `contact`
+  - `pick <event>`, `mine`, `ics`
+  - `play`, `sound on|off`, `binary <text>`, `clear`, `help`
+- **Hear the fest.** A button on the schedule plays the whole fest as music in about 20 seconds:
+  - Time runs along the ribbon (nights compressed). Every session is a plucked note in raga Mechakalyani (melakarta 65: S R2 G3 M2 P D2 N3). Its track sets the pitch: Code Sa', Business Pa, Culture Ga upward, Cyber Ri, Showcase Sa.
+  - A soft drum marks every hour something is on (the rim's cam, made audible), over a synthesised tanpura (Pa–Sa–Sa–Sa, Karplus–Strong).
+  - A playhead crosses the ribbon, the sounding sessions light up, the dial turns to each event, its hand follows the time of day, and the caption names the note.
+- **Engraved brass.** The dial is lit like relief metal. Normals come from the engraving masks, and the pointer is a lamp held over the plate. On phones the lamp follows the tilt, or slowly orbits.
+- **Feel.** Wheel scrolling glides while keeping the native scroll position, so sticky elements, anchors and the keyboard behave normally. Section headings rise out of a mask word by word, buttons lean toward the pointer, and nav labels decode from binary.
+
 ## Structure
 
 ```
@@ -65,8 +84,11 @@ assets/css/main.css     styles (palette tokens at the top)
 assets/js/content.js    ALL editable content
 assets/js/dial.js       WebGL dial: data-driven ring textures + shader
 assets/js/main.js       behaviour
+assets/img/             app icons (from the brand mark) and og.jpg share image
+manifest.webmanifest    install metadata
+sw.js                   offline cache (bump VERSION on every deploy)
 scripts/build.py        inlines everything into dist/
-dist/yugantra.html      self-contained single file (generated)
+dist/yugantra.html      self-contained single file (generated; no app install or offline mode)
 ```
 
 ## Edit content
@@ -92,6 +114,8 @@ The site is a static folder:
 
 - **Vercel / Netlify:** framework "Other", no build command, root as the output directory.
 - **GitHub Pages:** deploy from the branch root.
+- Deploy the **folder** (not `dist/yugantra.html`) to get the installable app, offline mode, icons and share image.
+- After each deploy, bump `VERSION` in `sw.js` so returning visitors get the new files.
 
 ## Launch checklist
 
@@ -102,6 +126,7 @@ The site is a static folder:
 - [ ] Fees for Reels, CTF and Masterclass; the CTF format and prizes; the Masterclass topic and speaker; the hackathon mentors
 - [ ] Gaming and AI × Traditional Art are marked "To be confirmed"; remove `status: "tbc"` once confirmed
 - [ ] Wording of the CSAI association (shown on the CTF and in Partners)
+- [ ] Set `og:image` in `index.html` to the absolute URL of `assets/img/og.jpg` once the domain is known (some platforms ignore relative URLs). The image was rendered from the hero, so re-render it if the design changes.
 
 **Given in the brief but deliberately not shown publicly** (internal planning notes):
 - Volunteer counts
@@ -117,6 +142,7 @@ The site is a static folder:
 - The Arthashastra (1st–3rd century CE)
 - Katapayadi (Haridatta, Kerala, 683 CE; the ragas 29 and 65)
 - Kollam Era 1202
+- Mechakalyani = melakarta 65, scale S R2 G3 M2 P D2 N3; tanpura tuning Pa–Sa–Sa–Sa
 
 ## Engineering notes
 

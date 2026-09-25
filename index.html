@@ -9,6 +9,15 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="Yugantra 2026">
 <meta property="og:description" content="Where tech defines the യുഗം. Ancient Eras × Future Technology.">
+<meta property="og:image" content="assets/img/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Yugantra 2026: the gold wordmark beside the fest dial">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-50 -50 100 100'%3E%3Crect x='-50' y='-50' width='100' height='100' fill='%2303110D'/%3E%3Cg fill='none' stroke='%23A38560' stroke-width='5' stroke-linecap='round'%3E%3Ccircle r='42'/%3E%3Cpath d='M13 -18A22 22 0 1 1 -13 -18M0 -27V-3'/%3E%3C/g%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -64,6 +73,13 @@
   <button class="snd" id="sndBtn" type="button" aria-pressed="false" aria-label="Sound off. Turn sound on">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path class="snd-body" d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path class="snd-on" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="snd-off" d="M16 10l4 4M20 10l-4 4"/></svg>
   </button>
+  <button class="snd term-btn" id="termBtn" type="button" aria-label="Open the Yugantra terminal (press /)" title="Terminal ( / )">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path class="snd-body" d="M5 7l5 5-5 5M12 17h7"/></svg>
+  </button>
+  <button class="my-dock" id="myDock" type="button" hidden aria-haspopup="dialog" aria-label="Open My Yuga, your plan">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.5l-5.2 2.7 1-5.8L3.6 9.3l5.8-.8z"/></svg>
+    <span class="md-l">My Yuga</span><b id="myCount">0</b>
+  </button>
   <a class="btn btn-gold nav-cta" data-register href="#events">Register</a>
   <button class="menu-btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="menu">
     <span class="mb-lines" aria-hidden="true"><i></i><i></i></span><span class="sr">Menu</span>
@@ -81,6 +97,8 @@
     <a href="#partners"><small>Sponsors</small>Partners</a>
     <a href="#faq"><small>Help</small>FAQ</a>
     <a href="#reach"><small>Write to us</small>Contact</a>
+    <a href="#top" data-term><small>Type your way around</small>Terminal</a>
+    <a href="#top" data-my hidden id="menuMy"><small>Your plan</small>My Yuga</a>
   </nav>
   <p class="menu-foot"><span data-bind="dateLabel"></span> · <span data-bind="venue"></span></p>
 </div>
@@ -205,6 +223,7 @@
         <div class="you-cta">
           <a class="btn btn-gold" data-register href="#events">Register</a>
           <a class="btn" href="#events">All <span data-bind="eventCount">14</span> events</a>
+          <button class="btn" type="button" data-term>Open the terminal</button>
         </div>
       </div>
 
@@ -278,6 +297,37 @@
     </div>
   </dialog>
 
+  <dialog class="dlg my" id="myDlg" aria-labelledby="myTitle">
+    <div class="dlg-in my-in">
+      <button class="dlg-x" id="myClose" type="button" aria-label="Close My Yuga">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5 19 19M19 5 5 19"></path></svg>
+      </button>
+      <header class="my-head">
+        <p class="eyebrow">Your plan</p>
+        <h3 class="dlg-title" id="myTitle">My Yuga</h3>
+        <p class="my-note" id="myNote"></p>
+      </header>
+      <ol class="my-list" id="myList"></ol>
+      <div class="my-clash" id="myClash" role="status"></div>
+      <div class="my-card">
+        <div class="my-card-form">
+          <label class="my-label" for="myName">Name on your story card</label>
+          <input class="my-input" id="myName" maxlength="26" autocomplete="name" placeholder="Optional">
+          <div class="my-actions">
+            <button class="btn btn-gold" id="myIcs" type="button">Add to calendar</button>
+            <button class="btn" id="myMake" type="button">Make my story card</button>
+          </div>
+          <div class="my-actions" id="myOut" hidden>
+            <button class="btn btn-sm" id="myShare" type="button" hidden>Share</button>
+            <a class="btn btn-sm" id="mySave" download="my-yugantra-2026.png" href="#">Save image</a>
+          </div>
+          <button class="linkish my-clear" id="myClear" type="button">Clear my plan</button>
+        </div>
+        <img class="my-preview" id="myPreview" alt="" hidden>
+      </div>
+    </div>
+  </dialog>
+
   <!-- =========================== SPOTLIGHT =========================== -->
   <section class="spot" id="spotlight" aria-labelledby="spotTitle">
     <span class="sec-mark" aria-hidden="true">24H</span>
@@ -346,6 +396,16 @@
         </div>
         <p class="lead">Every slot is shown in clock time and in ghatis from 06:00 IST, the way a traditional day was counted. <span class="prov" id="provNote">Timings are provisional; the final running order is announced soon.</span></p>
       </header>
+      <div class="sched-tools" data-reveal>
+        <button class="btn btn-gold play-btn" id="playFest" type="button" aria-pressed="false">
+          <svg class="pb-i" viewBox="0 0 24 24" aria-hidden="true"><path class="pb-play" d="M8 5.5v13l10-6.5z"/><path class="pb-stop" d="M7 7h10v10H7z"/></svg>
+          <span id="playLabel">Hear the fest</span>
+        </button>
+        <p class="play-cap" id="playCap">All <span data-bind="dayCount">3</span> days as music: every session is a note in raga Mechakalyani over a tanpura drone. About 20 seconds, sound on.</p>
+        <button class="chip" id="onlyMine" type="button" aria-pressed="false" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.5l-5.2 2.7 1-5.8L3.6 9.3l5.8-.8z"/></svg>Only my events
+        </button>
+      </div>
       <div class="ribbon-wrap" data-reveal><div class="ribbon" id="ribbon"></div></div>
       <div class="tabs" id="dayTabs" role="tablist" aria-label="Festival days"></div>
       <div id="dayPanels"></div>
@@ -457,6 +517,22 @@
     <a href="#top">Back to the beginning ↑</a>
   </div>
 </footer>
+
+<dialog class="cli" id="term" aria-label="Yugantra terminal">
+  <div class="term-in">
+    <div class="term-bar">
+      <span class="term-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="term-title">yugantra-cli · v<span data-bind="edition"></span></span>
+      <button class="term-x" id="termClose" type="button">esc</button>
+    </div>
+    <div class="term-out" id="termOut" role="log" aria-live="polite"></div>
+    <form class="term-form" id="termForm" autocomplete="off">
+      <label class="term-ps" for="termIn">yugantra@<span data-bind="edition"></span>:~$</label>
+      <input class="term-input" id="termIn" type="text" placeholder="type a command, or tap one below" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go">
+    </form>
+    <div class="term-sug" id="termSug" aria-label="Suggestions"></div>
+  </div>
+</dialog>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <!--@/BODY-->

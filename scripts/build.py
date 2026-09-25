@@ -33,6 +33,9 @@ def inline(html: str) -> str:
 def main() -> None:
     DIST.mkdir(exist_ok=True)
     full = inline(read("index.html"))
+    # The single file has no sibling assets: drop links that point at them
+    # (the manifest, icons and share image only exist in the deployed folder).
+    full = re.sub(r'\n<(?:link rel="(?:manifest|apple-touch-icon)"|meta property="og:image[^"]*"|meta name="apple-mobile-web-app-[^"]*")[^>]*>', "", full)
     (DIST / "yugantra.html").write_text(full, encoding="utf-8")
 
     title = re.search(r"<title>.*?</title>", full, re.S).group(0)
