@@ -221,7 +221,7 @@
       P.ray(a0(i), 0.365, 0.525, boundary ? 1.8 : 1.1, L(boundary ? 1 : 0.7));
       const mid = a0(i) + step / 2;
       P.radial(ev.short || ev.name, mid, 0.378, 0.021, FONT_DISPLAY, T(1));
-      const n = Math.max(1, ev.day);
+      const n = ev.day == null ? 0 : Math.max(1, ev.day); // no dots until its day is announced
       for (let k = 0; k < n; k++) {
         const a = mid + (k - (n - 1) / 2) * 0.024;
         if (ev.day === 0) P.circ(a, 0.51, 0.0045, 1, L(0.9));
@@ -557,7 +557,7 @@
       // perfboard: the build surface every project starts on
       vec2 g = (px + vec2(0.0, uScroll * 0.12 * uDpr)) / (28.0 * uDpr);
       float pad = smoothstep(0.11, 0.0, length(fract(g) - 0.5));
-      col += GOLD * pad * (0.035 + 0.05 * glow);
+      col += GOLD * pad * (0.022 + 0.035 * glow);
 
       float coc = 0.0;
       if (uExplode < 0.002) {

@@ -29,7 +29,7 @@ Nothing on the page is decoration. Every figure, tick, dot, ring, sound and moti
   - Hovering over a sector shows a tooltip, and clicking one opens the event.
 
 **Motion, all of it carrying data:**
-- **Boot, poured.** The grooves start cut but empty. Molten gold runs into each ring clockwise from 12 o'clock, centre first, with a liquid front, and cools from white-hot through amber to brass. Meanwhile a boot log reads the data (tracks, events, schedule, prizes) and the Mahayuga counter runs down from 43,20,000 to 2026.
+- **Boot, poured.** The grooves start cut but empty. Molten gold runs into each ring clockwise from 12 o'clock, centre first, with a liquid front, and cools from white-hot through amber to brass. Meanwhile the Mahayuga counter runs down from 43,20,000 to 2026.
 - **Exploded view.** As you leave the hero, the dial tilts into 3D and its rings separate into layers, then reassemble.
 - **Time lens.** The same dial as data: event ids, binary indexes, prizes in hex, and the schedule as a Gantt ring.
 - **Self-drawing symbols.** Each event symbol draws itself in order: frame (track), ticks (one per hour; a dashed ring means TBA), dots (team size), then the centre pictogram (the challenge).
@@ -38,7 +38,7 @@ Nothing on the page is decoration. Every figure, tick, dot, ring, sound and moti
 - **Ribbon.** The whole fest on one line, with nights compressed so the 24-hour hackathon visibly runs through the night.
 - **The Stage.** The Band Competition section turns the page to night. Its wax seals break when clicked.
 - **Cursor.** A custom cursor shows the track symbol of whatever you point at.
-- **Phone tilt.** On phones, tilting moves the light on the gold and the lens.
+- **Phone tilt.** On phones, tilting moves the light on the gold. The lens follows your finger.
 - **Sound (optional, off by default).** A tick sounds as each event passes the marker and as each ring locks; seals crack when broken.
 
 **Every track has an ancestor.** Each gets a live demo from history:
@@ -50,10 +50,8 @@ Nothing on the page is decoration. Every figure, tick, dot, ring, sound and moti
 **Sections, in order:** hero (the dial) → origins → tracks as ages → events → the flagship → passes → schedule → the Stage → partners → FAQ → contact → footer. A rail on the right edge (wide screens) shows where you are.
 
 - **The flagship.** The 24-Hour Hackathon on a 24-hour clock that starts at 13:30. Nights are shaded (18:00–06:00, the same sunrise convention as the ghatis). Point at the ring to read any hour.
-  - Food is parsed from the event's `food` line. There are no invented meal times.
-  - The goodies line (ID card, certificate, stickers) is rendered as tiltable cards, marked illustrative.
-  - The Pitchathon's CEO Face-off seats come from its `extras` (3 judges, 3 investors), with an 8 + 1 hour bar.
-- **Passes.** Four steps to register, a sample pass for any event (point at a row in the fee table), and every event's team, fee, prize pool and slot in one table.
+  - Beside it: start, team and fee, prize pool, what you take home and the food, all read from the event's own fields.
+- **Passes.** Four steps to register, and every event's team, fee, prize pool and slot in one table (folded until opened).
 - **Partners.** The three tiers with their slot counts, plus the CSAI association. "Request the deck" opens the contact form with the Partnerships topic selected.
 - **Contact.** The form checks the fields and composes an email to `site.email` in the visitor's mail app. If no mail app opens, it offers to copy the message. No data is sent anywhere.
 
@@ -77,14 +75,14 @@ Nothing on the page is decoration. Every figure, tick, dot, ring, sound and moti
 - **Glow and depth.** Bloom on the gold highlights. In the exploded 3D view there is depth of field: the middle plates stay sharp and the near and far ones soften.
 - **The page's light follows the track.** While the tracks are read, a horizon light shifts from Krita's golden dawn through Treta bronze and Dvapara emerald to Kali's burgundy dusk.
 - **Night by the fest's clock.** From ghati 30 (18:00 IST) to 06:00 the site turns to night: the plate falls dark and the pointer's lamp becomes the light. Override with `?night=1`, `?night=0` or the terminal's `night` command.
-- **Kolam dividers.** Four sikku kolams, each one unbroken line looped around a dot grid. They're generated as mirror curves (mirror layouts are tried until the line closes as a single loop) and draw themselves as you reach them. The dot counts are data:
+- **Kolam dividers.** Two sikku kolams, each one unbroken line looped around a dot grid. They're generated as mirror curves (mirror layouts are tried until the line closes as a single loop) and draw themselves as you reach them. The dot counts are data:
   - 24 points for the hackathon's hours;
-  - 18 for the sessions, in 3 rows for 3 days;
-  - 11 for the partner slots;
   - 14 for the events.
 - **Foil cards.** Event cards tilt toward the pointer with a gold-foil sheen, and their symbol shifts in parallax.
-- **Malayalam numerals.** Sections, the rail and the watermarks are numbered ൧–൧൦. The traditional countdown units (divasa, ghati, pala, vipala) roll in Malayalam digits, and the footer gives the Kollam Era as ൧൨൦൨.
+- **Malayalam numerals.** Sections and the rail are numbered ൧–൧൦, and the footer gives the Kollam Era as ൧൨൦൨.
 - **Feel.** Wheel scrolling glides while keeping the native scroll position, so sticky elements, anchors and the keyboard behave normally. Section headings rise out of a mask word by word, buttons lean toward the pointer, and nav labels decode from binary.
+
+**Layout principle.** One idea per screen, and detail one tap away. The hero is the wordmark, the tagline, the date and a countdown. Event cards show the symbol, the name and the prize; everything else opens in the event panel. The symbol legend and the full fee table fold away, and sound lives in the footer. No marquee, watermarks or boot log: the dial and the type carry the page. Emerald and gold are the surfaces; burgundy is kept for the night of the Stage and Kali's dusk.
 
 ## Structure
 

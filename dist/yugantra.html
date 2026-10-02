@@ -106,7 +106,7 @@ p { margin: 0; }
 html:not(.webgl) #dial { display: none; }
 html:not(.webgl) body { background: radial-gradient(90vmax 70vmax at 70% 30%, var(--bg-2), var(--bg) 70%) fixed; }
 
-main, .foot, .marquee { position: relative; z-index: 1; }
+main, .foot { position: relative; z-index: 1; }
 
 /* ---------- type primitives ---------- */
 .eyebrow {
@@ -166,12 +166,6 @@ html.js .intro {
 }
 html.js .intro.out { opacity: 0; pointer-events: none; }
 @keyframes intro-failsafe { to { visibility: hidden; } }
-.boot-log {
-  position: absolute; left: var(--gutter); bottom: calc(env(safe-area-inset-bottom, 0px) + 28px); margin: 0;
-  font-family: var(--f-mono); font-size: 12px; line-height: 1.8; letter-spacing: 0.04em; color: var(--gold-hi);
-  white-space: pre; text-shadow: 0 0 12px rgba(3, 17, 13, 0.9);
-}
-.boot-log::after { content: ""; display: inline-block; width: 0.6em; height: 1.1em; margin-left: 4px; vertical-align: -0.2em; background: var(--gold-hi); animation: blink 1s steps(1) infinite; }
 .intro-count { position: absolute; right: var(--gutter); bottom: calc(env(safe-area-inset-bottom, 0px) + 28px); text-align: right; }
 #introNum { display: block; font-family: var(--f-mono); font-weight: 300; font-size: clamp(28px, 4.4vw, 56px); letter-spacing: 0.02em; font-variant-numeric: tabular-nums; color: var(--text); transition: color 0.4s; }
 .intro.flip #introNum { font-family: var(--f-display); color: var(--gold-hi); letter-spacing: 0.08em; }
@@ -187,7 +181,6 @@ main, .nav, .foot { transition: opacity 0.9s var(--ease); }
 html.booting main { animation: unboot 0.01s 7s forwards; }
 @keyframes unboot { to { opacity: 1; pointer-events: auto; } }
 @media (max-width: 640px) {
-  .boot-log { font-size: 10.5px; bottom: 110px; }
   .intro-count { left: var(--gutter); right: auto; text-align: left; }
 }
 @keyframes draw { to { stroke-dashoffset: 0; } }
@@ -337,9 +330,6 @@ html.booting main { animation: unboot 0.01s 7s forwards; }
 .cd-row b { font-weight: 300; }
 .cd-row .u > i { font-style: normal; font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-2); }
 .cd-greg b { font-family: var(--f-display); font-size: clamp(30px, 3vw, 44px); line-height: 1.05; color: var(--text); }
-.cd-vedic { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line-soft); }
-.cd-vedic b { font-family: var(--f-mono); font-size: 17px; color: var(--gold-hi); }
-.cd-vedic .u { min-width: 3.4em; }
 .cd-greg .u { min-width: 3.4em; }
 
 .dial-legend { display: grid; gap: 4px; max-width: 42ch; justify-self: end; text-align: right; font-size: var(--fs-s); color: var(--text-2); line-height: 1.5; }
@@ -380,22 +370,6 @@ html.booting main { animation: unboot 0.01s 7s forwards; }
   .hero-date > span { padding-inline: 10px; }
   .cd-greg b { font-size: 30px; }
 }
-
-/* =====================================================================
-   Marquee
-   ===================================================================== */
-.marquee { border-block: 1px solid var(--line-soft); background: rgba(3, 17, 13, 0.6); overflow: hidden; }
-.mq-row { overflow: hidden; white-space: nowrap; }
-.mq-track { display: inline-flex; will-change: transform; }
-.mq-a { padding-block: 14px 6px; }
-.mq-b { padding-block: 8px 14px; border-top: 1px solid rgba(95, 81, 61, 0.25); }
-.mq-unit { display: inline-flex; align-items: center; flex: none; }
-.mq-a .mq-unit { gap: 0.4em; padding-right: 0.4em; font-family: var(--f-display); font-size: clamp(40px, 7vw, 108px); line-height: 1.15; }
-.mq-a .o { color: transparent; -webkit-text-stroke: 1px var(--gold); }
-.mq-a .s { font-family: var(--f-ml-d); font-weight: 800; color: var(--gold); line-height: 1; padding-top: 0.12em; }
-.mq-a .sep { width: 0.28em; height: 0.28em; background: var(--gold); transform: rotate(45deg); flex: none; }
-.mq-b .mq-unit { gap: 28px; padding-right: 28px; font-family: var(--f-mono); font-size: var(--fs-xs); letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-2); }
-.mq-b .mq-unit b { font-weight: 400; color: var(--gold); }
 
 /* =====================================================================
    Origin / lineage
@@ -464,7 +438,6 @@ html.booting main { animation: unboot 0.01s 7s forwards; }
   display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
 }
 .ages-top { display: grid; grid-template-columns: minmax(0, 0.58fr) minmax(0, 0.42fr); gap: 12px 40px; padding-top: calc(env(safe-area-inset-top, 0px) + var(--nav-h) + 18px); align-items: start; }
-.ages-note { max-width: 46ch; font-size: var(--fs-s); line-height: 1.55; color: var(--text-2); }
 .ages-body { display: grid; align-items: center; min-height: 0; }
 .ages-stages { display: grid; width: min(100%, 760px); }
 .stage {
@@ -520,7 +493,6 @@ html.booting main { animation: unboot 0.01s 7s forwards; }
 
 @media (max-width: 860px), (max-aspect-ratio: 9/10) {
   .ages-top { grid-template-columns: 1fr; }
-  .ages-note { display: none; }
   .ages-body { align-items: end; padding-bottom: 12px; }
   .stage { grid-template-columns: 1fr; position: relative; }
   .stage-num { position: absolute; right: 0; top: 22px; font-size: clamp(64px, 10vh, 96px); line-height: 0.9; }
@@ -909,18 +881,8 @@ html.on-sector #top, html.on-sector #dialSlot { cursor: pointer; }
 .arm rect { fill: var(--line); }
 .arm .joint { fill: var(--bg); stroke: var(--gold); stroke-width: 1.4; }
 .arm .tip { fill: var(--gold-hi); }
-
-.you {
-  margin-top: 28px; display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr) auto; gap: 20px 36px; align-items: center;
-  padding: 24px clamp(16px, 2vw, 28px);
-  border: 1px solid var(--line); background: linear-gradient(90deg, rgba(22, 48, 43, 0.6), rgba(3, 17, 13, 0.6));
-}
-.you-head { display: grid; gap: 6px; }
-.you .lin-who { color: var(--gold-hi); }
 .ro.term { min-height: 0; margin-top: 0; background: rgba(1, 8, 6, 0.75); }
 .ro.term .tx { white-space: pre-wrap; color: var(--text); }
-.you-cta { display: flex; flex-wrap: wrap; gap: 10px; }
-@media (max-width: 1080px) { .you { grid-template-columns: 1fr; } }
 
 /* long/short track labels */
 .sh { display: none; }
@@ -1136,14 +1098,6 @@ html:not(.ready) .rail, html.dlg-open .rail, html.lock .rail { opacity: 0; point
 
 /* ---------- section marks ---------- */
 .origin, .events, .spot, .passes, .schedule, .after, .partners, .reach { position: relative; }
-.sec-mark {
-  position: absolute; left: calc(var(--gutter) * 0.5); top: clamp(20px, 3vw, 56px); z-index: 0;
-  pointer-events: none; user-select: none; white-space: nowrap; will-change: transform;
-  font-family: var(--f-display); font-size: clamp(96px, 19vw, 320px); line-height: 0.8; letter-spacing: -0.02em;
-  color: transparent; -webkit-text-stroke: 1px rgba(163, 133, 96, 0.14);
-}
-.sec-mark ~ .wrap { position: relative; z-index: 1; }
-.after .sec-mark { -webkit-text-stroke-color: rgba(216, 193, 154, 0.12); }
 
 /* ---------- shared fact lists ---------- */
 .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; border-top: 1px solid var(--line-soft); }
@@ -1177,28 +1131,7 @@ html:not(.ready) .rail, html.dlg-open .rail, html.lock .rail { opacity: 0; point
 .clock24 .ck-p { fill: var(--gold); }
 .clock-cap { max-width: 46ch; text-align: center; font-size: var(--fs-s); color: var(--text-2); }
 .spot-facts { display: grid; gap: 28px; justify-items: start; }
-.spot-facts .facts, .fuel { width: 100%; }
-.fuel { display: grid; gap: 12px; }
-.fuel-k { font-family: var(--f-mono); font-size: var(--fs-xs); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); }
-.fuel-row { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
-.fuel-row li {
-  display: grid; justify-items: center; gap: 6px; min-width: 74px; padding: 12px 10px 10px;
-  border: 1px solid var(--line-soft); background: var(--panel);
-  font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-2);
-  transition: border-color 0.3s, color 0.3s;
-}
-.fuel-row li:hover { border-color: var(--gold); color: var(--text); }
-.fuel-row svg { width: 26px; height: 26px; overflow: visible; fill: none; stroke: var(--gold-hi); stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
-.spot [data-reveal].pre .fuel-row li { opacity: 0; }
-.fuel-row li { transition: opacity 0.6s var(--ease) calc(0.3s + var(--k, 0) * 80ms), border-color 0.3s, color 0.3s; }
-
-/* what you take home */
-.take { margin-top: clamp(56px, 8vw, 100px); display: grid; gap: 28px; }
-.take-head { display: grid; grid-template-columns: minmax(0, 0.45fr) minmax(0, 0.55fr); gap: 12px 40px; align-items: end; }
-.take-note { max-width: 62ch; color: var(--text-2); }
-.take-row { display: grid; grid-template-columns: minmax(0, 250px) minmax(0, 1.5fr) minmax(0, 1fr); gap: clamp(16px, 2.4vw, 36px); align-items: end; }
-.gd { margin: 0; display: grid; gap: 12px; }
-.gd figcaption { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-2); }
+.spot-facts .facts { width: 100%; }
 [data-tilt] { transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform 0.7s var(--ease); }
 [data-tilt].tilting { transition: transform 0.12s linear; }
 .foil {
@@ -1208,77 +1141,7 @@ html:not(.ready) .rail, html.dlg-open .rail, html.lock .rail { opacity: 0; point
     linear-gradient(115deg, transparent 30%, rgba(216, 193, 154, 0.35) calc(var(--mx, 30%) - 5%), rgba(163, 133, 96, 0.1) calc(var(--mx, 30%) + 12%), transparent 72%);
 }
 [data-tilt].tilting .foil { opacity: 0.95; }
-.gd-id {
-  position: relative; overflow: hidden; aspect-ratio: 5 / 7.6; display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
-  padding: 34px 20px 18px; border: 1px solid var(--gold-lo);
-  background: linear-gradient(160deg, #1b3a33 0%, #10261f 45%, #06150f 100%);
-  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.85);
-}
-.gd-slot { position: absolute; top: 12px; left: 50%; width: 42px; height: 7px; margin-left: -21px; border-radius: 4px; background: var(--bg); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8); }
-.gd-k { font-family: var(--f-mono); font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); }
-.gd-photo { width: 64px; aspect-ratio: 4 / 5; display: grid; place-items: center; margin-top: 6px; border: 1px solid var(--line); background: rgba(3, 17, 13, 0.6); }
-.gd-photo svg { width: 70%; fill: none; stroke: var(--text-2); stroke-width: 1.2; }
-.gd-name { margin-top: auto; font-family: var(--f-display); font-weight: 400; font-size: 22px; line-height: 1.1; color: var(--text); }
-.gd-ev { display: flex; align-items: center; gap: 6px; font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold-hi); }
-.gd-meta { font-size: 12px; color: var(--text-2); }
-.gd-ml { position: absolute; right: 14px; bottom: 14px; font-family: var(--f-ml-d); font-weight: 800; font-size: 40px; line-height: 1; background: var(--gold-metal); -webkit-background-clip: text; background-clip: text; color: transparent; opacity: 0.9; }
-.gd-cert {
-  position: relative; overflow: hidden; aspect-ratio: 1.414 / 1; display: grid; align-content: center; justify-items: center; gap: 10px; text-align: center;
-  padding: 28px 28px 34px; border: 1px solid var(--gold-lo); outline: 1px solid var(--line-soft); outline-offset: -10px;
-  background: radial-gradient(120% 90% at 50% 0%, #1a332d, #08170f 70%);
-  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.85);
-}
-.gd-cert-ev { font-family: var(--f-display); font-weight: 400; font-size: clamp(22px, 2.4vw, 34px); line-height: 1.05; color: var(--text); }
-.gd-line { min-width: 58%; padding-top: 14px; border-bottom: 1px solid var(--line); font-family: var(--f-display); color: var(--text-2); font-size: 15px; }
-.gd-sub { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-2); }
-.gd-seal { position: absolute; right: 18px; bottom: 16px; width: 56px; height: 62px; color: var(--gold); }
-.gd-seal svg { width: 100%; height: 100%; overflow: visible; }
-.gd-sheet {
-  position: relative; overflow: hidden; aspect-ratio: 1 / 1; display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 14px 12px;
-  padding: 22px; border: 1px dashed var(--line); background: rgba(3, 17, 13, 0.55);
-}
-.stk {
-  display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px;
-  background: var(--gold); color: var(--bg); transform: rotate(var(--r, 0deg));
-  box-shadow: 0 0 0 3px #EFE2C4, 0 10px 18px -8px rgba(0, 0, 0, 0.9);
-  font-family: var(--f-mono); font-size: clamp(10px, 0.85vw, 12px); letter-spacing: 0.14em; transition: transform 0.4s var(--ease);
-}
-.stk .fig { font-size: 1.5em; }
-@media (min-width: 1100px) { .stk { padding: 10px 16px; } .stk-ml { padding: 2px 20px; font-size: 32px; } }
-.stk i { font-style: normal; }
-.stk:hover { transform: rotate(0deg) scale(1.06); }
-.stk-ml { padding: 2px 16px; background: var(--burgundy); color: var(--gold-hi); font-family: var(--f-ml-d); font-weight: 800; font-size: 26px; letter-spacing: 0; }
-
-/* the face-off */
-.faceoff {
-  margin-top: clamp(56px, 8vw, 100px); display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: clamp(28px, 4vw, 64px); align-items: center;
-  padding: clamp(24px, 3vw, 44px); border: 1px solid var(--line);
-  background: linear-gradient(120deg, rgba(57, 5, 23, 0.6), rgba(3, 17, 13, 0.72) 62%);
-}
-.fo-text { display: grid; gap: 18px; justify-items: start; }
-.fo-text .facts { width: 100%; }
-.fo-h { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: clamp(32px, 3.6vw, 54px); line-height: 1.02; }
-.fo-p { max-width: 52ch; color: var(--text-2); }
-.fo-vis { display: grid; gap: 10px; }
-.fo-svg { width: 100%; height: auto; overflow: visible; }
-.fo-svg text { font-family: var(--f-mono); text-anchor: middle; fill: var(--text-2); }
-.fo-sight { fill: none; stroke: var(--line); stroke-width: 0.8; stroke-dasharray: 2 4; animation: fo-sight 3s linear infinite; }
 @keyframes fo-sight { to { stroke-dashoffset: -24; } }
-.fo-seat { transition: opacity 0.6s var(--ease) calc(0.25s + var(--k, 0) * 90ms); }
-.faceoff.pre .fo-seat { opacity: 0; }
-.fo-seat circle { fill: var(--bg); stroke: var(--gold); stroke-width: 1; }
-.fo-seat svg * { fill: none; stroke: var(--gold-hi); stroke-width: 1.8; }
-.fo-seat.g1 circle { fill: rgba(57, 5, 23, 0.95); stroke: var(--gold-hi); }
-.fo-svg .fo-gl { font-size: 8px; letter-spacing: 0.2em; text-transform: uppercase; fill: var(--gold); }
-.fo-svg .fo-timer { font-size: 30px; letter-spacing: 0.04em; fill: var(--text); }
-.fo-svg .fo-tl { font-size: 8px; letter-spacing: 0.24em; text-transform: uppercase; }
-.fo-team circle { fill: none; stroke: var(--gold-hi); stroke-width: 1.2; }
-.fo-team .fillc { fill: var(--gold-hi); }
-.fo-bar { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; height: 10px; }
-.fo-bar i { background: var(--line); }
-.fo-bar i.l { background: var(--gold-hi); }
-.fo-bar-k { display: flex; justify-content: space-between; gap: 12px; font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-2); }
-.fo-bar-k span:last-child { color: var(--gold-hi); text-align: right; }
 
 /* ---------- passes ---------- */
 .passes { padding-block: clamp(80px, 10vw, 140px); }
@@ -1292,36 +1155,6 @@ html:not(.ready) .rail, html.dlg-open .rail, html.lock .rail { opacity: 0; point
 .steps h3 a:hover { color: var(--gold-hi); }
 .steps h3 a:hover i { transform: translateX(4px); }
 .steps p { font-size: 15px; color: var(--text-2); }
-.pass-fig { margin: 0; display: grid; gap: 14px; justify-items: center; }
-.pass-fig figcaption { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-2); text-align: center; }
-.pass {
-  position: relative; overflow: hidden; width: min(100%, 620px); display: grid; grid-template-columns: minmax(0, 1fr) 128px;
-  border: 1px solid var(--gold-lo);
-  background: linear-gradient(135deg, #1c3b34 0%, #0f2620 50%, #07170f 100%);
-  box-shadow: 0 40px 80px -40px rgba(0, 0, 0, 0.9);
-}
-.pass-main { position: relative; overflow: hidden; display: grid; gap: 10px; align-content: start; height: 290px; padding: 22px 24px; }
-.pass-top { display: flex; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line-soft); font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-2); }
-.pass-brand { color: var(--gold); }
-.pass-track { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.18em; color: var(--gold-hi); }
-.pass-track .fig { font-size: 14px; }
-.pass-ev { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; max-width: calc(100% - 96px); font-family: var(--f-display); font-weight: 400; font-size: clamp(26px, 2.5vw, 36px); line-height: 1.05; color: var(--text); }
-.pass-glyph { position: absolute; right: 22px; top: 56px; width: 78px; height: 86px; color: var(--gold); }
-.pass-glyph svg { width: 100%; height: 100%; overflow: visible; }
-.pass-dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; margin: 8px 0 0; }
-.pass-dl dt { font-family: var(--f-mono); font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-2); }
-.pass-dl dd { margin: 2px 0 0; font-size: 14px; color: var(--text); }
-.pass-stub { position: relative; display: grid; justify-items: center; align-content: center; gap: 12px; padding: 18px 14px; border-left: 1px dashed var(--gold-lo); background: rgba(3, 17, 13, 0.35); }
-.pass-stub::before, .pass-stub::after { content: ""; position: absolute; left: -11px; width: 20px; height: 20px; border-radius: 50%; background: var(--bg); border: 1px solid var(--gold-lo); }
-.pass-stub::before { top: -11px; }
-.pass-stub::after { bottom: -11px; }
-.pass-code { width: 80px; height: auto; fill: var(--gold-hi); }
-.pass-no { font-family: var(--f-mono); font-size: 9px; letter-spacing: 0.14em; text-align: center; color: var(--text-2); }
-.pass-sample {
-  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-12deg); pointer-events: none; white-space: nowrap;
-  font-family: var(--f-display); font-size: 88px; letter-spacing: 0.12em; text-transform: uppercase;
-  color: transparent; -webkit-text-stroke: 1px rgba(216, 193, 154, 0.16);
-}
 .fees-wrap { margin-top: clamp(48px, 7vw, 90px); overflow-x: auto; }
 .fees { width: 100%; border-collapse: collapse; font-size: 15px; }
 .fees caption { caption-side: top; padding-bottom: 14px; text-align: left; font-family: var(--f-mono); font-size: var(--fs-xs); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); }
@@ -1413,30 +1246,14 @@ html:not(.ready) .rail, html.dlg-open .rail, html.lock .rail { opacity: 0; point
 /* ---------- responsive ---------- */
 @media (max-width: 960px) { .tiers { grid-template-columns: 1fr; } }
 @media (max-width: 900px) {
-  .spot-grid, .pass-grid, .faceoff, .reach-grid, .take-head { grid-template-columns: 1fr; }
-  .take-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: stretch; }
-  .gd { grid-template-rows: minmax(0, 1fr) auto; }
-  .gd-wide { grid-column: 1 / -1; order: -1; }
-  .gd-sheet { aspect-ratio: auto; height: 100%; min-height: 240px; }
+  .spot-grid, .pass-grid, .reach-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 760px) {
   .fees caption { display: block; }
 }
-@media (max-width: 560px) {
-  .take-row { grid-template-columns: 1fr; }
-  .gd-id { width: min(100%, 260px); }
-  .gd-sheet { min-height: 0; gap: 12px 10px; }
-  .pass-main { height: 330px; padding: 18px; }
-}
 @media (max-width: 520px) {
   .f-2, .facts { grid-template-columns: 1fr; }
   .facts > div:nth-child(odd) { padding-right: 0; }
-  .pass { grid-template-columns: minmax(0, 1fr) 92px; }
-  .pass-glyph { width: 56px; height: 62px; right: 14px; }
-  .pass-ev { max-width: calc(100% - 64px); }
-  .pass-code { width: 62px; }
-  .pass-sample { font-size: 60px; }
-  .gd-ml { font-size: 30px; }
 }
 @media (prefers-reduced-motion: reduce) {
   [data-tilt] { transform: none !important; }
@@ -1447,9 +1264,6 @@ html:not(.ready) .rail, html.dlg-open .rail, html.lock .rail { opacity: 0; point
   .plate { grid-template-columns: 1fr; }
   .seal { width: 132px; }
   .plate-body .btn { white-space: normal; text-align: center; max-width: 100%; }
-}
-@media (max-width: 560px) {
-  .fo-svg .fo-gl, .fo-svg .fo-tl { font-size: 11px; }
 }
 
 /* ---------- feel: headings rise line by line ---------- */
@@ -1620,13 +1434,11 @@ html.night .nav.scrolled { background-color: rgba(2, 10, 8, 0.86); }
 .kolam .kd circle { fill: var(--gold-hi); opacity: 0; transition: opacity 0.5s var(--ease); transition-delay: calc(var(--k, 0) * 18ms); }
 .kolam.drawn path { stroke-dashoffset: 0; }
 .kolam.drawn .kd circle { opacity: 0.9; }
-.kolam figcaption { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-2); opacity: 0; transition: opacity 0.8s 2.6s; text-align: center; }
 .kolam.drawn figcaption { opacity: 0.8; }
-@media (prefers-reduced-motion: reduce) { .kolam path { stroke-dashoffset: 0; } .kolam .kd circle, .kolam figcaption { opacity: 0.85; } }
+@media (prefers-reduced-motion: reduce) { .kolam path { stroke-dashoffset: 0; } .kolam .kd circle { opacity: 0.85; } }
 
 /* ---------- Malayalam numerals ---------- */
 .sec-no { font-family: var(--f-ml); font-weight: 600; font-size: 15px; letter-spacing: 0; text-transform: none; color: var(--gold-hi); margin-right: -2px; }
-.sec-mark .smn { font-family: var(--f-ml); margin-right: 0.12em; font-size: 0.9em; }
 .rail a span b { font-family: var(--f-ml); font-weight: 400; letter-spacing: 0; color: var(--gold); margin-right: 4px; }
 .odo [lang="ml"], .odo i[lang="ml"] { font-family: var(--f-ml); }
 .ml-num { font-family: var(--f-ml); color: var(--gold-hi); }
@@ -1644,6 +1456,90 @@ html.night .nav.scrolled { background-color: rgba(2, 10, 8, 0.86); }
 .ev-glyph { transition: transform 0.6s var(--ease); }
 .ev.tilting .ev-glyph { transform: translate3d(calc(var(--px, 0) * 8px), calc(var(--py, 0) * 6px), 0); transition-duration: 0.15s; }
 
+/* =====================================================================
+   v9 — minimal: the original palette, one idea per screen
+   ===================================================================== */
+:root { --section: clamp(112px, 13vw, 190px); }
+
+/* rhythm */
+.origin, .events, .spot, .passes, .schedule, .after, .partners, .faq, .reach { padding-block: var(--section); }
+.sec-head { margin-bottom: clamp(48px, 6.5vw, 92px); }
+.sec-head-split { align-items: end; }
+.lead { max-width: 46ch; font-size: clamp(16px, 1.15vw, 18px); }
+.kolam { padding-block: 0; }
+
+/* hero */
+.hero-foot { background: linear-gradient(to top, rgba(3, 17, 13, 0.92), rgba(3, 17, 13, 0.2)); }
+.dial-legend { align-self: end; }
+.dial-legend b { color: var(--text-2); font-size: 11px; letter-spacing: 0.08em; }
+.hero-date { margin-top: 18px; }
+
+/* origin */
+.lin { gap: 10px; padding-bottom: 36px; }
+.lin-what { font-size: 15px; max-width: 30ch; }
+.lineage .ro { min-height: 170px; margin-top: 18px; }
+.stats { margin-top: clamp(88px, 11vw, 150px); gap: clamp(24px, 3vw, 48px); }
+.stats > div { padding-top: 22px; }
+
+/* events */
+.ev-grid { gap: 18px; }
+.ev { min-height: 290px; gap: 10px; padding: 22px 24px 24px; }
+.ev:hover { border-color: var(--gold); }
+.ev-foot { margin-top: auto; }
+.ev-name { font-size: clamp(22px, 1.7vw, 26px); }
+.legend-wrap { border-top: 1px solid var(--line-soft); }
+.legend-wrap summary {
+  list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 2px;
+  font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold);
+}
+.legend-wrap summary::-webkit-details-marker { display: none; }
+.legend-wrap summary::after { content: "+"; font-size: 16px; color: var(--gold-hi); transition: transform 0.4s var(--ease); }
+.legend-wrap[open] summary::after { transform: rotate(45deg); }
+.legend-wrap .legend { margin-bottom: 0; }
+.ev-aside .legend .lg-title { display: none; }
+
+/* flagship: the clock and five facts */
+.spot-grid { align-items: center; }
+.spot-facts .facts { grid-template-columns: 1fr; }
+
+/* passes: four steps in a row; the full table waits behind a tap */
+.pass-grid { grid-template-columns: 1fr; }
+.steps { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; border-top: 1px solid var(--line-soft); }
+.steps li { grid-template-columns: 1fr; gap: 10px; padding: 24px clamp(14px, 2vw, 28px) 0 0; border-bottom: 0; }
+.steps .st-n { padding-top: 0; }
+.steps li { align-content: start; }
+/* card headers hold two lines so every glyph and name sits on the same line across a row */
+.ev-top { align-items: flex-start; min-height: 3.4em; min-height: 2lh; }
+.fees-more { margin-top: clamp(64px, 8vw, 110px); border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); }
+.fees-more > summary {
+  list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 22px 2px;
+  font-family: var(--f-display); font-size: clamp(22px, 2vw, 28px); color: var(--text); transition: color 0.3s;
+}
+.fees-more > summary::-webkit-details-marker { display: none; }
+.fees-more > summary span { font-family: var(--f-mono); font-size: 20px; color: var(--gold); transition: transform 0.4s var(--ease); }
+.fees-more[open] > summary span { transform: rotate(45deg); }
+.fees-more > summary:hover { color: var(--gold-hi); }
+.fees-more .fees-wrap { margin-top: 0; padding-bottom: 28px; }
+.fees-more .fees caption { display: none; }
+
+/* partners */
+.tier { min-height: 230px; }
+
+/* nav: sound lives in the footer */
+#termBtn { margin-left: 0; }
+@media (max-width: 1080px) { #sndBtn { margin-left: 0; } #termBtn { margin-left: auto; } }
+.foot-snd { display: inline-flex; align-items: center; gap: 10px; }
+.foot .snd { display: grid !important; }
+.snd-sm { width: 30px; height: 30px; }
+.snd-sm svg { width: 16px; height: 16px; }
+
+@media (max-width: 860px) {
+  .ev { min-height: 0; }
+  .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .steps li { padding-bottom: 24px; }
+}
+@media (max-width: 520px) { .steps { grid-template-columns: 1fr; } .steps li { padding-right: 0; border-bottom: 1px solid var(--line-soft); } }
+
 </style>
 </head>
 <body>
@@ -1654,7 +1550,6 @@ html.night .nav.scrolled { background-color: rgba(2, 10, 8, 0.86); }
 <div class="veil" id="veil" aria-hidden="true"></div>
 
 <div class="intro" id="intro" aria-hidden="true">
-  <pre class="boot-log" id="bootLog"></pre>
   <div class="intro-count">
     <span id="introNum">43,20,000</span>
     <small id="introLabel">years in a Mahayuga</small>
@@ -1692,9 +1587,6 @@ html.night .nav.scrolled { background-color: rgba(2, 10, 8, 0.86); }
     <a href="#stage">Stage</a>
     <a href="#reach">Contact</a>
   </nav>
-  <button class="snd" id="sndBtn" type="button" aria-pressed="false" aria-label="Sound off. Turn sound on">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path class="snd-body" d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path class="snd-on" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="snd-off" d="M16 10l4 4M20 10l-4 4"/></svg>
-  </button>
   <button class="snd term-btn" id="termBtn" type="button" aria-label="Open the Yugantra terminal (press /)" title="Terminal ( / )">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path class="snd-body" d="M5 7l5 5-5 5M12 17h7"/></svg>
   </button>
@@ -1734,14 +1626,12 @@ html.night .nav.scrolled { background-color: rgba(2, 10, 8, 0.86); }
         <p class="eyebrow" id="heroEyebrow"><span data-bind="kind"></span> · Edition <span data-bind="edition"></span></p>
         <h1 class="wordmark" id="wordmark"><span class="sr">Yugantra 2026</span><span class="wm" id="wm" aria-hidden="true"></span></h1>
         <p class="tagline" id="tagline">Where tech defines the <span class="ml-gold" lang="ml">യുഗം</span></p>
-        <ul class="tracks" id="tracks" aria-label="Tracks"></ul>
         <p class="hero-date" id="heroDate"><span data-bind="dateLabel"></span><span>Kollam Era <span data-bind="kollamEra"></span></span><span data-bind="venue"></span></p>
       </div>
       <div class="hero-future" id="heroFuture" aria-hidden="true">
         <p class="f-eyebrow" data-sync="heroEyebrow">fest.init({ theme: "ancient × future" })</p>
         <div class="f-wordmark" id="fwm" data-sync="wordmark"></div>
         <p class="f-tagline" data-sync="tagline">where tech defines the era<i class="caret"></i></p>
-        <p class="f-tracks" id="fTracks" data-sync="tracks"></p>
         <p class="f-date" data-sync="heroDate" id="fDate"></p>
       </div>
     </div>
@@ -1755,19 +1645,8 @@ html.night .nav.scrolled { background-color: rgba(2, 10, 8, 0.86); }
           <span class="u"><b data-k="m">00</b><i>min</i></span>
           <span class="u"><b data-k="s">00</b><i>sec</i></span>
         </div>
-        <div class="cd-row cd-vedic">
-          <span class="u"><b data-k="dv" data-ml>00</b><i>divasa</i></span>
-          <span class="u"><b data-k="gh" data-ml>00</b><i>ghati</i></span>
-          <span class="u"><b data-k="pa" data-ml>00</b><i>pala</i></span>
-          <span class="u"><b data-k="vp" data-ml>00</b><i>vipala</i></span>
-        </div>
       </div>
-      <p class="dial-legend">
-        <span class="dl-k">This dial is the fest</span>
-        <span>From the centre out: <span data-bind="trackCount">4</span> tracks, <span data-bind="eventCount">16</span> events, <span data-bind="dayCount">3</span> days of sessions and every prize. The marker at the top holds the next event and the centre shows its track. Point at any event to open it.</span>
-        <span class="dl-units"><b id="nextUp">—</b></span>
-        <span class="dl-units">Hand on the schedule ring · <b id="ghatiNow">—</b> · ghatis since 06:00 IST</span>
-      </p>
+      <p class="dial-legend"><span class="dl-units"><b id="nextUp">—</b></span></p>
       <div class="hero-ctas">
         <a class="btn btn-gold" data-register href="#events">Register</a>
         <a class="btn" href="#events">Explore events <span aria-hidden="true">↓</span></a>
@@ -1785,69 +1664,44 @@ html.night .nav.scrolled { background-color: rgba(2, 10, 8, 0.86); }
     <div class="dial-tip" id="dialTip" aria-hidden="true" hidden></div>
   </section>
 
-  <!-- ============================ MARQUEE ============================ -->
-  <div class="marquee" aria-hidden="true">
-    <div class="mq-row mq-a"><div class="mq-track" id="mqA"></div></div>
-    <div class="mq-row mq-b"><div class="mq-track" id="mqB"></div></div>
-  </div>
-
   <!-- ============================ ORIGIN ============================= -->
   <section class="origin" id="origin" aria-labelledby="originTitle">
-    <span class="sec-mark" aria-hidden="true">ORIGINS</span>
     <div class="wrap">
       <header class="sec-head sec-head-split" data-reveal>
         <div>
           <p class="eyebrow">Before silicon</p>
           <h2 class="h2" id="originTitle">Every track has an ancestor.</h2>
         </div>
-        <p class="lead">Each of Yugantra's four competition tracks starts from an idea this subcontinent had long before the machine. One of them was worked out here in Kerala. All four run live below.</p>
+        <p class="lead">Each competition track starts from an idea this land had long before the machine.</p>
       </header>
 
       <ol class="lineage">
         <li class="lin" data-reveal>
           <p class="lin-when">c. 200 BCE</p>
           <h3 class="lin-who">Pingala</h3>
-          <p class="lin-what">The <em>Chandas Shastra</em> lists every metre as a string of light and heavy syllables, row by row. That's binary counting in all but name.</p>
+          <p class="lin-what">Verse metres as strings of light and heavy syllables: binary, in all but name.</p>
           <div class="ro" id="roPingala" aria-hidden="true"></div>
-          <button class="lin-track" type="button" data-track="krita"></button>
         </li>
         <li class="lin" data-reveal>
           <p class="lin-when">1st–3rd century CE</p>
           <h3 class="lin-who">The Arthashastra</h3>
-          <p class="lin-what">A treatise on statecraft, economic policy and trade, attributed to Kautilya. Business thinking, written down.</p>
+          <p class="lin-what">Statecraft and trade, written down.</p>
           <div class="ro" id="roArtha" aria-hidden="true"></div>
-          <button class="lin-track" type="button" data-track="treta"></button>
         </li>
         <li class="lin" data-reveal>
           <p class="lin-when">c. 600 CE</p>
           <h3 class="lin-who">Chaturanga</h3>
-          <p class="lin-what">A war game from Gupta-era India: an army of four divisions on an uncheckered 8 × 8 board, and the ancestor of chess.</p>
+          <p class="lin-what">A Gupta-era war game on an 8 × 8 board, and the ancestor of chess.</p>
           <div class="ro" id="roChaturanga" aria-hidden="true"></div>
-          <button class="lin-track" type="button" data-track="dvapara"></button>
         </li>
         <li class="lin" data-reveal>
           <p class="lin-when">683 CE · Kerala</p>
           <h3 class="lin-who">Katapayadi</h3>
-          <p class="lin-what">Kerala astronomers wrote numbers as words: each consonant stands for a digit, and the digits are read backwards. A code you can remember, centuries before passwords.</p>
+          <p class="lin-what">Kerala's way of writing numbers as words. A code you can remember.</p>
           <div class="ro" id="roKatapayadi" aria-hidden="true"></div>
-          <button class="lin-track" type="button" data-track="kali"></button>
         </li>
       </ol>
 
-      <div class="you" data-reveal>
-        <div class="you-head">
-          <p class="lin-when">2026 CE</p>
-          <h3 class="lin-who">You</h3>
-          <p class="lin-what">The fifth line is yours. Pick a track.</p>
-          <button class="lin-track" type="button" data-track="yugantra"></button>
-        </div>
-        <div class="ro term" id="roYou" aria-hidden="true"></div>
-        <div class="you-cta">
-          <a class="btn btn-gold" data-register href="#events">Register</a>
-          <a class="btn" href="#events">All <span data-bind="eventCount">14</span> events</a>
-          <button class="btn" type="button" data-term>Open the terminal</button>
-        </div>
-      </div>
 
       <dl class="stats" id="stats" data-reveal></dl>
     </div>
@@ -1858,7 +1712,6 @@ html.night .nav.scrolled { background-color: rgba(2, 10, 8, 0.86); }
     <div class="ages-pin">
       <div class="wrap ages-top">
         <p class="eyebrow" id="agesTitle">Four tracks, four ages · 4 : 3 : 2 : 1</p>
-        <p class="ages-note">Each track is an age. Krita, Treta, Dvapara and Kali are named after the throws of a die (four, three, two, one), and their lengths keep that ratio. Scroll to run a whole Mahayuga through the fest.</p>
       </div>
       <div class="wrap ages-body">
         <div class="ages-stages" id="agesStages"></div>
@@ -1875,7 +1728,6 @@ html.night .nav.scrolled { background-color: rgba(2, 10, 8, 0.86); }
 
   <!-- ============================ EVENTS ============================= -->
   <section class="events" id="events" aria-labelledby="eventsTitle">
-    <span class="sec-mark" aria-hidden="true">EVENTS</span>
     <div class="wrap">
       <header class="sec-head sec-head-split" data-reveal>
         <div>
@@ -1890,7 +1742,7 @@ html.night .nav.scrolled { background-color: rgba(2, 10, 8, 0.86); }
           <div class="ev-sticky">
             <div class="dial-slot" id="dialSlot" aria-hidden="true"><span class="slot-hint">Point at an event</span></div>
             <p class="slot-cap" id="slotCap" aria-live="polite"></p>
-            <div class="legend" id="legend"></div>
+            <details class="legend-wrap"><summary>How to read a symbol</summary><div class="legend" id="legend"></div></details>
           </div>
         </aside>
         <div class="ev-grid" id="evGrid"></div>
@@ -1953,7 +1805,6 @@ html.night .nav.scrolled { background-color: rgba(2, 10, 8, 0.86); }
   <figure class="kolam" data-kolam="spotlight" aria-hidden="true"></figure>
   <!-- =========================== SPOTLIGHT =========================== -->
   <section class="spot" id="spotlight" aria-labelledby="spotTitle">
-    <span class="sec-mark" aria-hidden="true">24H</span>
     <div class="wrap">
       <header class="sec-head sec-head-split" data-reveal>
         <div>
@@ -1969,24 +1820,14 @@ html.night .nav.scrolled { background-color: rgba(2, 10, 8, 0.86); }
         </div>
         <div class="spot-facts" data-reveal>
           <dl class="facts" id="spotFacts"></dl>
-          <div class="fuel" id="fuel"></div>
           <button class="btn btn-gold" type="button" data-open="hackathon">24-Hour Hackathon details</button>
         </div>
       </div>
-      <div class="take" data-reveal>
-        <div class="take-head">
-          <p class="eyebrow">What you take home</p>
-          <p class="take-note" id="takeNote"></p>
-        </div>
-        <div class="take-row" id="takeRow"></div>
-      </div>
-      <div class="faceoff" id="faceoff" data-reveal></div>
     </div>
   </section>
 
   <!-- ============================= PASSES ============================ -->
   <section class="passes" id="passes" aria-labelledby="passTitle">
-    <span class="sec-mark" aria-hidden="true">PASS</span>
     <div class="wrap">
       <header class="sec-head sec-head-split" data-reveal>
         <div>
@@ -1997,21 +1838,16 @@ html.night .nav.scrolled { background-color: rgba(2, 10, 8, 0.86); }
       </header>
       <div class="pass-grid">
         <ol class="steps" id="steps" data-reveal></ol>
-        <figure class="pass-fig" data-reveal>
-          <div class="pass" id="pass" data-tilt></div>
-          <figcaption>Sample pass design. Yours carries your event and team.</figcaption>
-        </figure>
       </div>
-      <div class="fees-wrap" data-reveal>
-        <table class="fees" id="fees"><caption>Every event at a glance</caption></table>
-      </div>
+      <details class="fees-more" data-reveal>
+        <summary>Every event's fee, team and prize <span aria-hidden="true">+</span></summary>
+        <div class="fees-wrap"><table class="fees" id="fees"><caption>Every event at a glance</caption></table></div>
+      </details>
     </div>
   </section>
 
-  <figure class="kolam" data-kolam="schedule" aria-hidden="true"></figure>
   <!-- =========================== SCHEDULE ============================ -->
   <section class="schedule" id="schedule" aria-labelledby="schedTitle">
-    <span class="sec-mark" aria-hidden="true">TIME</span>
     <div class="wrap">
       <header class="sec-head sec-head-split" data-reveal>
         <div>
@@ -2025,7 +1861,7 @@ html.night .nav.scrolled { background-color: rgba(2, 10, 8, 0.86); }
           <svg class="pb-i" viewBox="0 0 24 24" aria-hidden="true"><path class="pb-play" d="M8 5.5v13l10-6.5z"/><path class="pb-stop" d="M7 7h10v10H7z"/></svg>
           <span id="playLabel">Hear the fest</span>
         </button>
-        <p class="play-cap" id="playCap">All <span data-bind="dayCount">3</span> days as music: every session is a note in raga Mechakalyani over a tanpura drone. About 20 seconds, sound on.</p>
+        <p class="play-cap" id="playCap">All <span data-bind="dayCount">3</span> days as music, in raga Mechakalyani. About 20 seconds.</p>
         <button class="chip" id="onlyMine" type="button" aria-pressed="false" hidden>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.5l-5.2 2.7 1-5.8L3.6 9.3l5.8-.8z"/></svg>Only my events
         </button>
@@ -2038,7 +1874,6 @@ html.night .nav.scrolled { background-color: rgba(2, 10, 8, 0.86); }
 
   <!-- ============================== STAGE ============================== -->
   <section class="after" id="stage" aria-labelledby="afterTitle">
-    <span class="sec-mark" aria-hidden="true">LIVE</span>
     <div class="wrap">
       <header class="sec-head" data-reveal>
         <p class="eyebrow">Band competition</p>
@@ -2049,10 +1884,8 @@ html.night .nav.scrolled { background-color: rgba(2, 10, 8, 0.86); }
     </div>
   </section>
 
-  <figure class="kolam" data-kolam="partners" aria-hidden="true"></figure>
   <!-- ============================ PARTNERS =========================== -->
   <section class="partners" id="partners" aria-labelledby="partnersTitle">
-    <span class="sec-mark" aria-hidden="true">PATRONS</span>
     <div class="wrap">
       <header class="sec-head sec-head-split" data-reveal>
         <div>
@@ -2085,7 +1918,6 @@ html.night .nav.scrolled { background-color: rgba(2, 10, 8, 0.86); }
   <figure class="kolam" data-kolam="reach" aria-hidden="true"></figure>
   <!-- ============================= CONTACT =========================== -->
   <section class="reach" id="reach" aria-labelledby="reachTitle">
-    <span class="sec-mark" aria-hidden="true">REACH</span>
     <div class="wrap reach-grid">
       <header class="sec-head" data-reveal>
         <p class="eyebrow">Contact</p>
@@ -2140,6 +1972,9 @@ html.night .nav.scrolled { background-color: rgba(2, 10, 8, 0.86); }
   <div class="wrap foot-base">
     <span>© <span data-bind="edition"></span> Yugantra</span>
     <span>Made in Kerala for the next yuga</span>
+    <span class="foot-snd">Sound<button class="snd snd-sm" id="sndBtn" type="button" aria-pressed="false" aria-label="Sound off. Turn sound on">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path class="snd-body" d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path class="snd-on" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="snd-off" d="M16 10l4 4M20 10l-4 4"/></svg>
+  </button></span>
     <a href="#top">Back to the beginning ↑</a>
   </div>
 </footer>
@@ -2437,7 +2272,6 @@ window.YUGANTRA = {
     ["Is food provided?", "For the long events, yes. The 24-Hour Hackathon includes lunch, dinner, breakfast and three snacks. The Junior Hackathon includes lunch and snacks, and the Pitchathon includes lunch and two snacks."],
     ["How do I register?", "Open an event and choose Register. Registration links go live when registration opens."],
     ["What is the dial on the home page?", "It is the whole fest on one instrument. From the centre out: the tracks, every event, the days of sessions and the prizes. The marker at the top holds the next event (or the one live now), and the centre shows its track's symbol. Point at anything on the page and the dial turns to it; hover or tap an event on the dial to open it."],
-    ["What do the event symbols mean?", "Every symbol reads the same way. The frame is the track: a diamond for Code, a triangle for Business, twin circles for Culture & Play, a point in a circle for Cyber Security and the power sign for Learn & Showcase. The ring has one tick per hour the event runs; a dashed ring means the duration is still to be announced. The dots are the team size, and the centre shows what you will do."],
     ["What do the ghati numbers mean?", "A traditional Indian day has 60 ghatis of 24 minutes each, counted from sunrise. We count from 06:00 IST, so 10:00 is ghati 10."]
   ]
 };
@@ -3003,7 +2837,7 @@ window.YUGANTRA = {
       // perfboard: the build surface every project starts on
       vec2 g = (px + vec2(0.0, uScroll * 0.12 * uDpr)) / (28.0 * uDpr);
       float pad = smoothstep(0.11, 0.0, length(fract(g) - 0.5));
-      col += GOLD * pad * (0.035 + 0.05 * glow);
+      col += GOLD * pad * (0.022 + 0.035 * glow);
 
       float coc = 0.0;
       if (uExplode < 0.002) {
@@ -3674,11 +3508,11 @@ window.YUGANTRA = {
   wm.innerHTML = [...WORD].map((ch, i) => `<span class="ch" data-ch="${ch}" style="--i:${i}">${ch}</span>`).join('');
   $('#fwm').innerHTML = [...WORD].map((ch) => `<span class="fch"><b>${ch}</b><i>${ch.charCodeAt(0).toString(2).padStart(8, '0')}</i></span>`).join('');
 
-  $('#tracks').innerHTML = D.ages.map((a, i) => {
+  if ($('#tracks')) $('#tracks').innerHTML = D.ages.map((a, i) => {
     const n = eventsOf(a.id).length;
     return `<li><button type="button" data-track="${a.id}" data-dial-track="${a.id}" aria-label="${esc(a.domain)}: ${n} events">${figSVG(i)}<span class="lg">${esc(a.domain)}</span><span class="sh">${esc(a.track)}</span><b>${n}</b></button></li>`;
   }).join('');
-  $('#fTracks').textContent = `tracks = [${D.ages.map((a) => `${a.slug}:${eventsOf(a.id).length}`).join(', ')}]`;
+  if ($('#fTracks')) $('#fTracks').textContent = `tracks = [${D.ages.map((a) => `${a.slug}:${eventsOf(a.id).length}`).join(', ')}]`;
 
   // Brahmi, the script Malayalam descends from, for the decode animation.
   const BRAHMI = [0x11005, 0x11006, 0x11007, 0x11009, 0x1100f].concat(Array.from({ length: 33 }, (_, i) => 0x11013 + i)).map((c) => String.fromCodePoint(c)).join('');
@@ -3723,11 +3557,11 @@ window.YUGANTRA = {
   }
 
   /* ------------------------------------------------------------------ *
-   * Countdown — Gregorian and traditional units, on rolling digits     *
+   * Countdown — on rolling digits                                       *
    * ------------------------------------------------------------------ */
   const cdEls = Object.fromEntries($$('#countdown [data-k]').map((b) => [b.dataset.k, b]));
   const cdLast = {};
-  function setCd(k, v) { if (cdLast[k] !== v) { cdLast[k] = v; odo(cdEls[k], v); } }
+  function setCd(k, v) { if (cdEls[k] && cdLast[k] !== v) { cdLast[k] = v; odo(cdEls[k], v); } }
   function updateCountdown(now) {
     let target = startMs;
     let label = 'Until the next yuga';
@@ -3741,10 +3575,6 @@ window.YUGANTRA = {
     setCd('h', pad(Math.floor(rem / 36e5)));
     setCd('m', pad(Math.floor((rem % 36e5) / 6e4)));
     setCd('s', pad(Math.floor((rem % 6e4) / 1e3)));
-    setCd('dv', pad(dd));
-    setCd('gh', pad(Math.floor(rem / 1440000)));
-    setCd('pa', pad(Math.floor((rem % 1440000) / 24000)));
-    setCd('vp', pad(Math.floor((rem % 24000) / 400)));
   }
   function ghatiFraction(now) {
     const ist = now + IST_OFFSET;
@@ -3761,24 +3591,7 @@ window.YUGANTRA = {
     const night = isNight(frac);
     root.classList.toggle('night', night);
     const txt = `${Math.floor(g)} gh ${Math.floor((g % 1) * 60)} pa · ${night ? 'night' : 'day'}`;
-    if (txt !== lastGhatiText) { lastGhatiText = txt; $('#ghatiNow').textContent = txt; }
-  }
-
-  /* ------------------------------------------------------------------ *
-   * Marquee: the tagline, then the whole programme                      *
-   * ------------------------------------------------------------------ */
-  const mq = { a: $('#mqA'), b: $('#mqB'), wa: 0, wb: 0, xa: 0, xb: 0 };
-  function buildMarquee() {
-    const unitA = '<span class="mq-unit"><span class="o">Where tech defines the</span><span class="s" lang="ml">യുഗം</span><span class="sep"></span></span>';
-    const items = D.events.map((e) => `<span>${esc(e.name)}${e.prize ? ` <b>${rupees(e.prize)}</b>` : ''}</span>`).join('');
-    const unitB = `<span class="mq-unit">${items}<span><b>${trackCount}</b> tracks <b>${D.events.length}</b> events <b>1</b> new age</span></span>`;
-    [[mq.a, unitA, 'wa'], [mq.b, unitB, 'wb']].forEach(([el, unit, key]) => {
-      el.innerHTML = unit;
-      const w = el.firstElementChild.getBoundingClientRect().width || 800;
-      const copies = Math.ceil((innerWidth * 2) / w) + 1;
-      el.innerHTML = unit.repeat(copies);
-      mq[key] = w;
-    });
+    if (txt !== lastGhatiText) { lastGhatiText = txt; const gn = $('#ghatiNow'); if (gn) gn.textContent = txt; }
   }
 
   /* ------------------------------------------------------------------ *
@@ -3879,18 +3692,6 @@ window.YUGANTRA = {
           <span class="${st > 2 ? 'line on' : 'line'}">read backwards → <b class="ok">${ex.n}</b>: melakarta raga no. ${ex.n}</span>`;
       },
       step() { this.s++; if (this.s > 5) { this.s = 0; this.k = (this.k + 1) % KATAPAYADI.length; } this.draw(); }
-    },
-    you: { el: $('#roYou'), i: 0, every: 45, t: 0,
-      text: `> yugantra tracks\n${D.ages.map((a) => `${a.slug}(${eventsOf(a.id).length})`).join('  ')}\n> yugantra register --track=`,
-      draw(all) {
-        const s = all ? this.text : this.text.slice(0, this.i);
-        this.el.innerHTML = `<span class="k">yugantra-cli · v${site.edition}</span><span class="tx">${esc(s)}<span class="cursor-blink"></span></span>`;
-      },
-      step() {
-        this.i++;
-        if (this.i > this.text.length + 60) this.i = 0;
-        if (this.i <= this.text.length || this.i === 0) this.draw();
-      }
     }
   };
   let originVisible = false;
@@ -3900,10 +3701,9 @@ window.YUGANTRA = {
       readouts.artha.draw();
       readouts.chaturanga.i = readouts.chaturanga.path.length - 1; readouts.chaturanga.draw();
       readouts.katapayadi.draw();
-      readouts.you.draw(true);
       return;
     }
-    Object.values(readouts).forEach((r) => r.draw(r === readouts.you));
+    Object.values(readouts).forEach((r) => r.draw());
     new IntersectionObserver((entries) => { originVisible = entries.some((e) => e.isIntersecting); }, { rootMargin: '100px 0px' }).observe($('#origin'));
   }
   function tickReadouts(dtMs) {
@@ -4047,8 +3847,7 @@ window.YUGANTRA = {
         <span class="ev-top"><span class="era">${figSVG(AGE[ev.era].index)}${esc(AGE[ev.era].track)}</span><span>${ev.status === 'tbc' ? '<em class="tbc">To be confirmed</em>' : esc(whenLabel(ev))}</span></span>
         <span class="ev-glyph">${glyphSVG(ev)}</span>
         <span class="ev-name">${esc(ev.name)}</span>
-        <span class="ev-format">${esc(ev.format)}</span>
-        <span class="ev-foot">${footFor(ev)}<span class="ev-team">Team ${esc(ev.teamLabel)}<br>${esc(durShort(ev))}</span></span>
+        <span class="ev-foot">${footFor(ev)}</span>
         <span class="foil" aria-hidden="true"></span>
       </button>${pickBtn(ev)}</div>`).join('');
     drawOnView($('#evGrid'));
@@ -4324,16 +4123,10 @@ window.YUGANTRA = {
   }
   function renderPartners() {
     $('#assoc').innerHTML = (D.associations || []).map((a) => `<div class="assoc-card"><span class="k">In association with</span><b>${esc(a.name)}</b><span>${esc(a.full)}</span><i>${esc(a.role)}</i></div>`).join('');
-    const vis = (t) => {
-      if (/title/i.test(t.tier)) return `<div class="tv-title" aria-hidden="true"><span>${esc(site.name)} ${esc(site.edition)}</span><i>×</i><span class="tv-you">Your brand</span></div>`;
-      if (/track/i.test(t.tier)) return `<ul class="tv-tracks">${D.ages.filter((a) => a.years).map((a) => `<li data-dial-track="${a.id}">${figSVG(AGE[a.id].index)}<span>${esc(a.domain)}</span><i>${eventsOf(a.id).length} events</i></li>`).join('')}</ul>`;
-      return `<ul class="tv-seats" aria-hidden="true">${Array.from({ length: t.slots }, (_, i) => `<li>${pad(i + 1)}</li>`).join('')}</ul>`;
-    };
     $('#tiers').innerHTML = D.partners.map((t) => `<article class="tier" data-reveal>
         <p class="tier-n"><span class="cnt"></span><small>${t.slots === 1 ? 'slot' : 'slots'}</small></p>
         <h3>${esc(t.tier)}</h3>
         <p class="tier-note">${esc(t.note)}</p>
-        ${vis(t)}
       </article>`).join('');
     $$('#tiers .cnt').forEach((el, i) => odoOnView(el, String(D.partners[i].slots)));
   }
@@ -4342,54 +4135,13 @@ window.YUGANTRA = {
   }
 
   /* ------------------------------------------------------------------ *
-   * Spotlight — the 24 hours on one clock, what's included, the face-off *
+   * Spotlight — the 24 hours on one clock and the facts that matter    *
    * ------------------------------------------------------------------ */
   const fmt12 = (hhmm) => { const m = toMinutes(hhmm); if (m == null) return hhmm; const h = Math.floor(m / 60); return `${((h + 11) % 12) + 1}:${pad(m % 60)} ${h < 12 ? 'am' : 'pm'}`; };
   const cap1 = (s) => s.charAt(0).toUpperCase() + s.slice(1);
   const splitFact = (x) => { const i = x.indexOf(':'); return i > 0 ? [x.slice(0, i), cap1(x.slice(i + 1).trim())] : ['Also', x]; };
   const factsHTML = (rows) => rows.map(([k, v, odoV]) => `<div><dt>${esc(k)}</dt><dd>${odoV ? `<span class="cnt" data-v="${esc(odoV)}"></span>` : esc(v)}</dd></div>`).join('');
-  function parseFood(s) {
-    return String(s || '').split(/,\s*|\s+and\s+/i).map((p) => p.trim()).filter(Boolean).flatMap((p) => {
-      const m = /^(\d+)\s+(.+?)s?$/i.exec(p);
-      const name = (m ? m[2] : p).toLowerCase();
-      return Array.from({ length: m ? Number(m[1]) : 1 }, () => name);
-    });
-  }
-  const FOOD_ICON = {
-    breakfast: '<path d="M-11 5H11M-6 5A6 6 0 0 1 6 5M0 -9V-5M-8 -4L-5.5 -1.5M8 -4L5.5 -1.5M-11 9H11" />',
-    lunch: '<circle r="4.5"/><path d="M0 -11V-7.5M0 7.5V11M-11 0H-7.5M7.5 0H11M-7.8 -7.8L-5.3 -5.3M7.8 7.8L5.3 5.3M-7.8 7.8L-5.3 5.3M7.8 -7.8L5.3 -5.3"/>',
-    dinner: '<path d="M2 -10A10 10 0 1 0 10 3A7.5 7.5 0 0 1 2 -10Z"/>',
-    snack: '<path d="M-8 -3H6V2Q6 8 -1 8Q-8 8 -8 2Z"/><path d="M6 -1H8Q10.5 -1 10.5 1.5Q10.5 4 8 4H5.5M-4 -10Q-2 -8 -4 -6M1 -10Q3 -8 1 -6"/>'
-  };
-  const PERSON = '<circle cy="-5" r="5"/><path d="M-10 12Q-10 2 0 2Q10 2 10 12"/>';
-
   const clk = { els: null, visible: false, hover: null, t0: 0, start: 0, hours: 24, day: 1, last: '' };
-  function goodie(kind, ev) {
-    const a = AGE[ev.era];
-    if (kind === 'id') return `<figure class="gd"><div class="gd-id" data-tilt>
-        <span class="gd-slot" aria-hidden="true"></span>
-        <span class="gd-k">${esc(site.name)} ${esc(site.edition)} · Participant</span>
-        <span class="gd-photo" aria-hidden="true"><svg viewBox="-14 -14 28 28">${PERSON}</svg></span>
-        <b class="gd-name">Your name</b>
-        <span class="gd-ev">${figSVG(a.index)}${esc(ev.name)}</span>
-        <span class="gd-meta">${esc(ev.teamLabel)} · ${esc(ev.venue)}</span>
-        <span class="gd-ml" lang="ml" aria-hidden="true">യുഗം</span>
-        <span class="foil" aria-hidden="true"></span>
-      </div><figcaption>ID card</figcaption></figure>`;
-    if (kind === 'cert') return `<figure class="gd gd-wide"><div class="gd-cert" data-tilt>
-        <span class="gd-k">Certificate</span>
-        <b class="gd-cert-ev">${esc(ev.name)}</b>
-        <span class="gd-line">Your name</span>
-        <span class="gd-sub">${esc(site.name)} ${esc(site.edition)} · Kollam Era ${esc(site.kollamEra)}</span>
-        <span class="gd-seal" aria-hidden="true">${glyphSVG(ev)}</span>
-        <span class="foil" aria-hidden="true"></span>
-      </div><figcaption>Certificate</figcaption></figure>`;
-    return `<figure class="gd"><div class="gd-sheet" data-tilt>
-        ${D.ages.map((x, i) => `<span class="stk" style="--r:${[-8, 6, -4, 9, -6][i] || 0}deg" data-dial-track="${x.id}">${figSVG(i)}<i>${esc(x.track)}</i></span>`).join('')}
-        <span class="stk stk-ml" lang="ml">യുഗം</span>
-        <span class="foil" aria-hidden="true"></span>
-      </div><figcaption>Stickers</figcaption></figure>`;
-  }
   function renderSpotlight() {
     const ev = EVENTS.hackathon;
     if (!ev) { $('#spotlight').remove(); return; }
@@ -4457,78 +4209,15 @@ window.YUGANTRA = {
     new IntersectionObserver((en) => { const v = en[0].isIntersecting; if (v && !clk.visible) clk.t0 = clock; clk.visible = v; }).observe(svg);
 
     // ---- facts, from the event itself
+    const gl = /:\s*(.+)$/.exec(ev.goodies || '');
     $('#spotFacts').innerHTML = factsHTML([
       ['Starts', `${fmt12(ev.time)} · Day ${ev.day}${prov}`],
-      ['Runs', `${ev.hours} hours, through the night`],
-      ['Team', ev.teamLabel],
-      ['Entry', ev.fee],
-      ['Venue', ev.venue === 'TBA' ? 'To be announced' : ev.venue],
+      ['Team', `${ev.teamLabel} · ${ev.fee}`],
       ['Prize pool', '', ev.prize ? rupees(ev.prize) : 'TBA'],
-      ...(ev.extras || []).map(splitFact)
+      ['You take home', gl ? cap1(gl[1]) : 'To be announced'],
+      ...(ev.food ? [['Food, included', cap1(ev.food.toLowerCase())]] : [])
     ]);
     $$('#spotFacts .cnt').forEach((el) => odoOnView(el, el.dataset.v));
-
-    // ---- fuel: parsed from the food line, no invented timings
-    const food = parseFood(ev.food);
-    if (food.length) {
-      const snacks = food.filter((f) => f === 'snack').length, meals = food.length - snacks;
-      $('#fuel').innerHTML = `<p class="fuel-k">Food, included · ${meals} meals${snacks ? ` + ${snacks} snacks` : ''}</p>
-        <ul class="fuel-row">${food.map((f, i) => `<li style="--k:${i}"><svg viewBox="-12 -12 24 24" aria-hidden="true">${FOOD_ICON[f] || FOOD_ICON.lunch}</svg><span>${esc(f)}</span></li>`).join('')}</ul>`;
-    } else $('#fuel').remove();
-
-    // ---- what you take home: the goodies line, rendered
-    const list = /:\s*(.+)$/.exec(ev.goodies || '');
-    const kinds = list ? list[1].split(/,\s*|\s+and\s+/i).map((g) => (/id card/i.test(g) ? 'id' : /certificate/i.test(g) ? 'cert' : /sticker/i.test(g) ? 'stickers' : null)).filter(Boolean) : [];
-    if (kinds.length) {
-      const others = D.events.filter((e) => e.id !== ev.id && e.goodies).map((e) => e.name);
-      $('#takeNote').textContent = `${ev.goodies} with the ${ev.name}.${others.length ? ` ${others.join(', ').replace(/, ([^,]*)$/, ' and $1')} include goodies too.` : ''} Designs shown are illustrative.`;
-      $('#takeRow').innerHTML = kinds.map((k) => goodie(k, ev)).join('');
-    } else $('.take').remove();
-
-    // ---- the Pitchathon's face-off: seats parsed from its panels
-    const pe = EVENTS.pitchathon;
-    if (!pe) { $('#faceoff').remove(); return; }
-    const panels = (pe.extras || []).map((x) => /^(\w+)\s+panel:\s*(\d+)\s+(\w+)/i.exec(x)).filter(Boolean).map((m) => ({ n: Number(m[2]), who: m[3] }));
-    const G = panels.length, GAP = 18, SPAN = 150, each = G ? (SPAN - GAP * (G - 1)) / G : 0;
-    let seats = '', groupLabels = '', sight = '', k = 0;
-    panels.forEach((p, g) => {
-      const a0 = -90 - SPAN / 2 + g * (each + GAP);
-      for (let i = 0; i < p.n; i++) {
-        const a = ((a0 + (each * (i + 0.5)) / p.n) * Math.PI) / 180;
-        const x = Math.cos(a) * 118, y = 96 + Math.sin(a) * 118;
-        seats += `<g class="fo-seat g${g}" style="--k:${k++}" transform="translate(${f2(x)} ${f2(y)})"><circle r="11"/><svg x="-8" y="-8" width="16" height="16" viewBox="-14 -14 28 28">${PERSON}</svg></g>`;
-        sight += `M0 104L${f2(x)} ${f2(y)}`;
-      }
-      const am = ((a0 + each / 2) * Math.PI) / 180;
-      groupLabels += `<text class="fo-gl" x="${f2(Math.cos(am) * 150)}" y="${f2(96 + Math.sin(am) * 150)}">${p.n} ${esc(p.who)}</text>`;
-    });
-    const [need, max] = teamRange(pe.team);
-    const team = Array.from({ length: max }, (_, i) => `<circle cx="${f2((i - (max - 1) / 2) * 16)}" cy="112" r="5"${i < need ? ' class="fillc"' : ''}/>`).join('');
-    const parts = /(\d+)\s*hours?\s*\+\s*(\d+)-hour/i.exec(pe.duration);
-    const [build, live] = parts ? [Number(parts[1]), Number(parts[2])] : [pe.hours || 0, 0];
-    $('#faceoff').dataset.dialEv = pe.id;
-    $('#faceoff').dataset.ev = pe.id;
-    $('#faceoff').innerHTML = `
-      <div class="fo-text">
-        <p class="eyebrow">${esc(AGE[pe.era].domain)} · ${esc(pe.name)}</p>
-        <h3 class="fo-h">The CEO Face-off, live.</h3>
-        <p class="fo-p">${esc(pe.blurb)}</p>
-        <dl class="facts facts-sm">${factsHTML([['Team', pe.teamLabel], ['Entry', pe.fee], ['Prize pool', '', pe.prize ? rupees(pe.prize) : 'TBA'], ['Food', pe.food || 'TBA']])}</dl>
-        <button class="btn" type="button" data-open="${pe.id}">${esc(pe.name)} details</button>
-      </div>
-      <div class="fo-vis" aria-hidden="true">
-        <svg class="fo-svg" viewBox="-170 -50 340 190">
-          <path class="fo-sight" d="${sight}"/>
-          ${seats}${groupLabels}
-          <text class="fo-timer" y="44">${pad(live * 60)}:00</text>
-          <text class="fo-tl" y="62">minutes, live</text>
-          <g class="fo-team">${team}</g>
-          <text class="fo-gl you" y="136">Your team</text>
-        </svg>
-        <div class="fo-bar">${Array.from({ length: build + live }, (_, i) => `<i class="${i < build ? 'b' : 'l'}" style="--k:${i}"></i>`).join('')}</div>
-        <p class="fo-bar-k"><span>${build} hours · build the pitch</span><span>${live} hour · face-off</span></p>
-      </div>`;
-    $$('#faceoff .cnt').forEach((el) => odoOnView(el, el.dataset.v));
   }
   const clockHour = () => (clk.hover != null ? clk.hover : reduced ? 0 : ((clock - clk.t0) % clk.hours + clk.hours) % clk.hours);
   function updateClock() {
@@ -4552,46 +4241,8 @@ window.YUGANTRA = {
   }
 
   /* ------------------------------------------------------------------ *
-   * Passes — how to register, a sample pass, every fee on one table     *
+   * Passes — how to register and every fee on one table                *
    * ------------------------------------------------------------------ */
-  function codeGrid(seed) {
-    let h = 2166136261;
-    for (const c of seed) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
-    const rnd = () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return (h >>> 0) / 4294967296; };
-    let cells = '';
-    for (let y = 0; y < 9; y++) for (let x = 0; x < 4; x++) {
-      if (rnd() < 0.5) continue;
-      cells += `<rect x="${x}" y="${y}" width="0.86" height="0.86"/>`;
-      if (x < 3) cells += `<rect x="${6 - x}" y="${y}" width="0.86" height="0.86"/>`;
-    }
-    return `<svg class="pass-code" viewBox="-0.5 -0.5 8 10" aria-hidden="true">${cells}</svg>`;
-  }
-  let passFor = '';
-  function setPass(id) {
-    const ev = EVENTS[id];
-    if (!ev || id === passFor) return;
-    passFor = id;
-    const a = AGE[ev.era];
-    const code = `YG${site.edition.slice(2)} · ${(ev.short || ev.id).replace(/[^A-Za-z]/g, '').slice(0, 4).toUpperCase()} · 0001`;
-    const pass = $('#pass');
-    pass.innerHTML = `<div class="pass-main">
-        <div class="pass-top"><span class="pass-brand">${esc(site.name)} ’${esc(site.edition.slice(2))}</span><span>Event pass</span></div>
-        <span class="pass-track">${figSVG(a.index)}${esc(a.track)}</span>
-        <b class="pass-ev">${esc(ev.name)}</b>
-        <dl class="pass-dl">
-          <div><dt>When</dt><dd>${esc(ev.day === 0 ? 'Online' : `Day ${ev.day} · ${ev.time}`)}</dd></div>
-          <div><dt>Venue</dt><dd>${esc(ev.venue)}</dd></div>
-          <div><dt>Team</dt><dd>${esc(ev.teamLabel)}</dd></div>
-          <div><dt>Entry</dt><dd>${esc(ev.fee)}</dd></div>
-        </dl>
-        <span class="pass-glyph">${glyphSVG(ev)}</span>
-      </div>
-      <div class="pass-stub">${codeGrid(ev.id)}<span class="pass-no">${esc(code)}</span></div>
-      <span class="pass-sample" aria-hidden="true">Sample</span>
-      <span class="foil" aria-hidden="true"></span>`;
-    pass.setAttribute('aria-label', `Sample pass for ${ev.name}`);
-    redraw($('.glyph', pass));
-  }
   function renderPasses() {
     const amount = (e) => { const m = /₹\s?([\d,]+)/.exec(e.fee); return m ? Number(m[1].replace(/,/g, '')) : null; };
     const priced = D.events.filter((e) => amount(e) != null).sort((a, b) => amount(a) - amount(b));
@@ -4599,14 +4250,12 @@ window.YUGANTRA = {
     const tba = D.events.length - priced.length;
     $('#passLead').textContent = `Each event has its own entry fee${lo ? `, from ${lo.fee} for ${lo.name} to ${hi.fee} for the ${hi.name}` : ''}. You pay when you register.`;
     const steps = [
-      ['Pick your events', `${D.events.length} events across ${D.ages.length} tracks. Star the ones you want: My Yuga keeps your plan, flags clashes and adds it to your calendar.`, '#events'],
-      ['Register', site.registerUrl ? 'Register from the event you picked.' : `Registration opens ${site.registrationOpens}. The link goes live on every event.`],
-      ['Pay the entry fee', `Per person or per team, as listed below.${tba ? ` ${tba} fees are still to be announced.` : ''}`],
-      ['Turn up', `Your event's day, time and venue are on the schedule${site.scheduleIsProvisional ? ', provisional for now' : ''}.`, '#schedule']
+      ['Pick your events', 'Star the ones you want. My Yuga keeps your plan.', '#events'],
+      ['Register', site.registerUrl ? 'From the event you picked.' : `Opens ${site.registrationOpens}, on every event.`],
+      ['Pay the entry fee', `Per person or per team, as listed.${tba ? ` ${tba} still to be announced.` : ''}`],
+      ['Turn up', 'Day, time and venue are on the schedule.', '#schedule']
     ];
     $('#steps').innerHTML = steps.map(([t, d, href], i) => `<li style="--k:${i}"><span class="st-n">${pad(i + 1)}</span><div><h3>${href ? `<a href="${href}">${esc(t)} <i aria-hidden="true">→</i></a>` : esc(t)}</h3><p>${esc(d)}</p></div></li>`).join('');
-    $('.pass-fig figcaption').textContent = 'Sample pass design. Point at an event in the table to preview its pass.';
-    setPass(EVENTS.hackathon ? 'hackathon' : D.events[0].id);
 
     const prov = site.scheduleIsProvisional;
     $('#fees').innerHTML = `<caption>Every event at a glance${prov ? ' · days and times are provisional' : ''}</caption>
@@ -4614,7 +4263,7 @@ window.YUGANTRA = {
       <tbody>${DIAL_EVENTS.map((ev) => {
         const a = AGE[ev.era];
         const prize = ev.prize ? rupees(ev.prize) : ev.kind === 'competition' ? 'TBA' : '—';
-        return `<tr data-ev="${ev.id}" data-dial-ev="${ev.id}" data-pass="${ev.id}">
+        return `<tr data-ev="${ev.id}" data-dial-ev="${ev.id}">
           <td class="fe-fig" title="${esc(a.domain)}">${figSVG(a.index)}</td>
           <th scope="row"><button type="button" data-open="${ev.id}">${esc(ev.name)}</button>${ev.status === 'tbc' ? ' <em class="tbc">TBC</em>' : ''}</th>
           <td data-k="Team">${esc(ev.teamLabel)}</td>
@@ -4623,9 +4272,6 @@ window.YUGANTRA = {
           <td data-k="When">${esc(whenLabel(ev))}</td>
           <td class="fe-pick">${pickBtn(ev)}</td></tr>`;
       }).join('')}</tbody>`;
-    const pick = (e) => { const tr = e.target.closest && e.target.closest('[data-pass]'); if (tr) setPass(tr.dataset.pass); };
-    $('#fees').addEventListener('pointerover', pick);
-    $('#fees').addEventListener('focusin', pick);
   }
 
   /* ------------------------------------------------------------------ *
@@ -5407,12 +5053,13 @@ window.YUGANTRA = {
       const sp = spec[fig.dataset.kolam];
       if (!sp) { fig.remove(); return; }
       const k = kolamSVG(sp[0], sp[1], `yugantra-${fig.dataset.kolam}`);
-      fig.innerHTML = `${k.svg}<figcaption>Kolam · ${esc(sp[2])}${k.single ? ' · one unbroken line' : ''}</figcaption>`;
+      fig.innerHTML = k.svg;
+      fig.title = `Kolam · ${sp[2]}${k.single ? ' · one unbroken line' : ''}`;
       if (reduced) fig.classList.add('drawn'); else io.observe(fig);
     });
   }
 
-  /* Malayalam numerals: every section, the rail and the watermarks are numbered ൧ to ൧൦. */
+  /* Malayalam numerals: every section and the rail are numbered ൧ to ൧൦. */
   function initNumerals() {
     const order = ['origin', 'ages', 'events', 'spotlight', 'passes', 'schedule', 'stage', 'partners', 'faq', 'reach'];
     order.forEach((id, i) => {
@@ -5420,8 +5067,6 @@ window.YUGANTRA = {
       if (!sec) return;
       const eb = sec.querySelector('.eyebrow');
       if (eb && !eb.querySelector('.sec-no')) eb.insertAdjacentHTML('afterbegin', `<span class="sec-no" lang="ml" aria-hidden="true">${ML(i + 1)}</span>`);
-      const mk = $(':scope > .sec-mark', sec);
-      if (mk && !mk.querySelector('.smn')) mk.innerHTML = `<span class="smn" lang="ml">${ML(i + 1)}</span>${esc(mk.textContent)}`;
     });
     $$('#rail a').forEach((a) => {
       const sp = a.querySelector('span');
@@ -5431,7 +5076,7 @@ window.YUGANTRA = {
     if (ke) ke.insertAdjacentHTML('afterend', ` <span class="ml-num" lang="ml">(${ML(site.kollamEra)})</span>`);
   }
 
-  /* cards you can pick up: goodies and the pass tilt toward the pointer */
+  /* event cards tilt toward the pointer */
   let tiltEl = null;
   const resetTilt = (el) => { el.classList.remove('tilting'); ['--rx', '--ry', '--px', '--py'].forEach((p) => el.style.removeProperty(p)); };
   document.addEventListener('pointermove', (e) => {
@@ -5582,18 +5227,6 @@ window.YUGANTRA = {
   }, { rootMargin: '-45% 0px -50% 0px' });
   railLinks.forEach((a) => { const el = document.getElementById(a.dataset.sec); if (el) sectionIO.observe(el); else a.remove(); });
 
-  /* section names drift behind the content, slower than the page */
-  const marks = $$('.sec-mark').map((el) => ({ el, host: el.parentElement }));
-  function updateMarks() {
-    if (reduced) return;
-    for (const m of marks) {
-      const r = m.rect;
-      if (!r || r.bottom < 0 || r.top > H) continue;
-      const t = (r.top + r.height / 2 - H / 2) / (H + r.height);
-      m.el.style.transform = `translate3d(${(t * -180).toFixed(1)}px, ${(t * 240).toFixed(1)}px, 0)`;
-    }
-  }
-
   function initReveal() {
     const vh = innerHeight;
     const io = new IntersectionObserver((entries) => {
@@ -5691,7 +5324,7 @@ window.YUGANTRA = {
     lastW = W = innerWidth; H = innerHeight;
     setQuality(quality);
     syncFuture();
-    if (widthChanged) { buildMarquee(); fitBigmark(); }
+    if (widthChanged) fitBigmark();
     if (dial && texReady && neededTexture() > dial.textureSize) {
       clearTimeout(texTimer);
       texTimer = setTimeout(() => { try { dial.paint(neededTexture(), dialData()); } catch (_) { /* keep current */ } }, 500);
@@ -5714,7 +5347,7 @@ window.YUGANTRA = {
       try { dial.paint(neededTexture(), dialData()); texReady = true; } catch (err) { console.warn('[yugantra] texture paint failed:', err); }
     });
   }
-  fontsReady.then(() => { syncFuture(); buildMarquee(); fitBigmark(); });
+  fontsReady.then(() => { syncFuture(); fitBigmark(); });
 
   const EMERALD = [0.086, 0.188, 0.169], BURGUNDY = [0.224, 0.02, 0.09], BRONZE = [0.373, 0.318, 0.239];
   const AGE_TINT = [EMERALD, [0.2, 0.19, 0.15], [0.12, 0.2, 0.16], BURGUNDY, BRONZE];
@@ -5726,10 +5359,10 @@ window.YUGANTRA = {
     const portrait = w < h * 0.9;
     switch (id) {
       case 'top': return portrait ? { x: w * 0.5, y: h * 0.27, r: Math.min(w * 0.6, h * 0.3), o: 1, t: EMERALD } : { x: w * 0.71, y: h * 0.5, r: h * 0.62, o: 1, t: EMERALD };
-      case 'spotlight': return portrait ? { x: w * 0.5, y: h * 0.1, r: w * 0.8, o: 0.08, t: EMERALD } : { x: w * 0.02, y: h * 0.5, r: h * 0.62, o: 0.16, t: EMERALD };
-      case 'passes': return portrait ? { x: w * 0.5, y: h * 0.9, r: w * 0.8, o: 0.08, t: BRONZE } : { x: w * 0.96, y: h * 0.72, r: h * 0.56, o: 0.14, t: BRONZE };
-      case 'reach': return { x: w * 0.5, y: h * 1.02, r: Math.min(w, h) * 0.55, o: 0.3, t: BRONZE };
-      case 'origin': return portrait ? { x: w * 0.5, y: h * 0.5, r: h * 0.55, o: 0.12, t: EMERALD } : { x: w * 0.9, y: h * 0.5, r: h * 0.62, o: 0.2, t: EMERALD };
+      case 'spotlight': return portrait ? { x: w * 0.5, y: h * 0.1, r: w * 0.8, o: 0.05, t: EMERALD } : { x: w * 0.02, y: h * 0.5, r: h * 0.62, o: 0.08, t: EMERALD };
+      case 'passes': return portrait ? { x: w * 0.5, y: h * 0.9, r: w * 0.8, o: 0.05, t: BRONZE } : { x: w * 0.96, y: h * 0.72, r: h * 0.56, o: 0.07, t: BRONZE };
+      case 'reach': return { x: w * 0.5, y: h * 1.02, r: Math.min(w, h) * 0.55, o: 0.16, t: BRONZE };
+      case 'origin': return portrait ? { x: w * 0.5, y: h * 0.5, r: h * 0.55, o: 0.06, t: EMERALD } : { x: w * 0.92, y: h * 0.5, r: h * 0.62, o: 0.09, t: EMERALD };
       case 'ages': {
         const tint = AGE_TINT[agesState.stage] || EMERALD;
         if (portrait) {
@@ -5748,11 +5381,11 @@ window.YUGANTRA = {
       }
       case 'schedule': {
         const lit = FestSound.playing ? 3.2 : 1;
-        return portrait ? { x: w * 0.5, y: h * 0.2, r: w * 0.7, o: 0.1 * lit, t: EMERALD } : { x: w * 0.04, y: h * 0.55, r: h * 0.7, o: 0.14 * lit, t: EMERALD };
+        return portrait ? { x: w * 0.5, y: h * 0.2, r: w * 0.7, o: 0.05 * lit * 1.6, t: EMERALD } : { x: w * 0.04, y: h * 0.55, r: h * 0.7, o: 0.07 * lit * 1.6, t: EMERALD };
       }
-      case 'stage': return { x: w * 0.5, y: h * 0.55, r: Math.min(w, h) * 0.5, o: 0.22, t: BURGUNDY };
-      case 'partners': return { x: w * 0.92, y: h * 0.3, r: h * 0.55, o: 0.14, t: EMERALD };
-      case 'faq': return { x: w * 0.1, y: h * 0.62, r: h * 0.48, o: 0.12, t: EMERALD };
+      case 'stage': return { x: w * 0.5, y: h * 0.55, r: Math.min(w, h) * 0.5, o: 0.14, t: BURGUNDY };
+      case 'partners': return { x: w * 0.92, y: h * 0.3, r: h * 0.55, o: 0.07, t: EMERALD };
+      case 'faq': return { x: w * 0.1, y: h * 0.62, r: h * 0.48, o: 0.06, t: EMERALD };
       default: return { x: w * 0.5, y: h * 1.02, r: Math.min(w, h) * 0.6, o: 0.4, t: BRONZE };
     }
   }
@@ -5880,7 +5513,7 @@ window.YUGANTRA = {
     tip.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
   }
 
-  /* device tilt (phones) moves the light and the lens */
+  /* device tilt (phones) moves the light */
   const tilt = { x: 0, y: 0, on: false };
   addEventListener('deviceorientation', (e) => {
     if (e.gamma == null) return;
@@ -5900,14 +5533,8 @@ window.YUGANTRA = {
     let target = 0;
     if (visible) {
       if (fine && pointer.inHero) { lens.tx = pointer.x; lens.ty = pointer.y; target = base; }
-      else if (!fine && !reduced) {
-        if (clock - pointer.lastTouch > 2.6) {
-          const wr = M.wm || wm.getBoundingClientRect();
-          lens.tx = wr.left + wr.width * (0.5 + 0.4 * Math.sin(clock * 0.42) + (tilt.on ? tilt.x * 0.3 : 0));
-          lens.ty = wr.top + wr.height * (0.55 + 0.35 * Math.sin(clock * 0.83) + (tilt.on ? tilt.y * 0.4 : 0));
-        }
-        target = base;
-      }
+      // touch: the lens is where the finger is, and fades a moment after it lifts (never parked over the wordmark)
+      else if (!fine && clock - pointer.lastTouch < 2.6) target = base;
     }
     if (lens.r < 0.5 && target > 0) { lens.x = lens.tx; lens.y = lens.ty; }
     lens.x = damp(lens.x, lens.tx, 16, dt);
@@ -5985,33 +5612,17 @@ window.YUGANTRA = {
     const m = /^#ev-([\w-]+)$/.exec(location.hash);
     if (m && EVENTS[m[1]]) setTimeout(() => openEvent(m[1]), 400);
   }
-  const BOOT_LINES = [
-    '> yugantra --boot ' + site.edition,
-    `tracks ........ ${trackCount} + ${D.ages.length - trackCount} showcase`,
-    `events ........ ${D.events.length}`,
-    `schedule ...... ${days} days · ${slotCount} slots`,
-    `prizes ........ ₹${lakhText(confirmedPool)} lakh+ confirmed`,
-    `identity ...... YUGANTRA ${site.edition}`,
-    'ready · where tech defines the യുഗം'
-  ];
   function runIntro() {
     const el = $('#intro');
     const skip = reduced || navigator.webdriver || !el || !dial;
     if (skip) { el && el.remove(); bootV = 1; onReady(); return; }
     root.classList.add('booting');
-    const log = $('#bootLog'), num = $('#introNum'), lab = $('#introLabel');
+    const num = $('#introNum'), lab = $('#introLabel');
     let shown = 0, done = false, t0 = 0, lastBand = -1;
-    const showLines = (n) => {
-      if (n <= shown) return;
-      shown = n;
-      log.textContent = BOOT_LINES.slice(0, n).join('\n');
-    };
-    showLines(1);
     const finish = () => {
       if (done) return;
       done = true;
       bootV = 1;
-      showLines(BOOT_LINES.length);
       num.textContent = site.edition;
       lab.textContent = `${site.name} · ${site.kind.toLowerCase()} · ${site.dateLabel}`;
       el.classList.add('flip');
@@ -6032,7 +5643,6 @@ window.YUGANTRA = {
       num.textContent = inr.format(Math.round(MAHAYUGA * Math.pow(1 - k, 2)));
       const band = Math.floor(k * 6.6 - 1);
       if (band !== lastBand && band >= 0) { lastBand = band; Sound.tick(1000 + band * 180, 0.05, 0.05); }
-      showLines(1 + clamp(band + 1, 0, 5));
       if (k < 1) requestAnimationFrame(frame); else finish();
     };
     requestAnimationFrame(frame);
@@ -6047,18 +5657,16 @@ window.YUGANTRA = {
   const veil = $('#veil');
   /* Every layout read for a frame happens here, before any write, so the page
      never forces a second layout mid-frame. */
-  const M = { hero: null, heroMain: null, slot: null, ages: null, big: null, wm: null, docH: 1, agesGap: null };
+  const M = { hero: null, heroMain: null, slot: null, ages: null, big: null, docH: 1, agesGap: null };
   const agesTopEl = $('.ages-top', agesEl);
   function measure() {
     M.docH = root.scrollHeight - H;
     for (const s of SECTIONS) s.rect = s.el ? s.el.getBoundingClientRect() : null;
-    for (const m of marks) m.rect = m.host.getBoundingClientRect();
     M.hero = hero.getBoundingClientRect();
     M.heroMain = heroMain.getBoundingClientRect();
     M.slot = dialSlot.getBoundingClientRect();
     M.ages = agesEl.getBoundingClientRect();
     M.big = bigmark.getBoundingClientRect();
-    M.wm = !fine && M.hero.bottom > 0 ? wm.getBoundingClientRect() : null;
     M.agesGap = null;
     if (W < H * 0.9 && M.ages.bottom > 0 && M.ages.top < H && agesNodes) {
       const st = agesNodes.stages[Math.max(0, agesStage)];
@@ -6100,16 +5708,8 @@ window.YUGANTRA = {
     tickReadouts(dt * 1000);
     updateSpot(M.big);
     updateClock();
-    updateMarks();
     FestSound.frame();
 
-    if (mq.wa && !reduced) {
-      const sp = 46 + Math.min(1600, Math.abs(vel)) * 0.35;
-      mq.xa = (((mq.xa + dir * sp * dt) % mq.wa) + mq.wa) % mq.wa;
-      mq.xb = (((mq.xb - dir * sp * 0.6 * dt) % mq.wb) + mq.wb) % mq.wb;
-      mq.a.style.transform = `translate3d(${-mq.xa.toFixed(1)}px,0,0)`;
-      mq.b.style.transform = `translate3d(${-mq.xb.toFixed(1)}px,0,0)`;
-    }
     if (M.hero.bottom > 0) {
       const sh = clamp(pointer.x / W, 0, 1).toFixed(3);
       if (sh !== wlast.sheen) { wlast.sheen = sh; wm.style.setProperty('--sheen', sh); }
@@ -6161,8 +5761,8 @@ window.YUGANTRA = {
       if (agesState.active && TRACK_RANGE[agesState.stage]) {
         [fa, fb] = TRACK_RANGE[agesState.stage]; figure = agesState.stage; capKind = 'track'; capI = agesState.stage;
       } else {
-        // the flagship and the pass preview hold their own event while in view
-        const own = (cover.spotlight || 0) > 0.5 ? 'hackathon' : (cover.passes || 0) > 0.5 ? passFor : null;
+        // the flagship holds its own event while in view
+        const own = (cover.spotlight || 0) > 0.5 ? 'hackathon' : null;
         if (own && DIAL_INDEX[own] != null) { fa = fb = DIAL_INDEX[own]; figure = AGE[EVENTS[own].era].index; capKind = 'ev'; capI = fa; }
       }
       if (pageFocus) {
@@ -6243,6 +5843,7 @@ window.YUGANTRA = {
         }
       }
     } else {
+      if (wall - heldAt > 1000) { held = heldEvent(wall); heldAt = wall; updateHeldText(); }
       updateLens(dt);
     }
     updateCursor(dt);

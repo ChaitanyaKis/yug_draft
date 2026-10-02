@@ -49,13 +49,25 @@
   const trackCount = D.ages.filter((a) => a.years).length;
   const days = D.schedule.length;
   const slotCount = D.schedule.reduce((s, d) => s + d.slots.length, 0);
+  // What has been announced. Anything that hasn't reads "to be announced", never a guess.
+  const DATES_SET = Number.isFinite(Date.parse(site.startsAt)) && Number.isFinite(Date.parse(site.endsAt));
+  const SCHEDULED = days > 0;
+  const HAS_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(site.email || '');
+  const SOCIALS = (site.socials || []).filter((x) => /^https?:\/\//.test(x.url || ''));
+  const PROV = SCHEDULED && site.scheduleIsProvisional;
+  const DATE_TEXT = site.dateLabel || 'Dates to be announced';
+  const VENUE_TEXT = site.venue || 'Venue to be announced';
+  /** Calendar days the fest spans: from the schedule, else from its dates. */
+  const festDays = SCHEDULED ? days
+    : DATES_SET ? Math.round((Date.parse(site.endsAt.slice(0, 10)) - Date.parse(site.startsAt.slice(0, 10))) / 864e5) + 1 : 0;
   const lakhText = (v) => (v / 1e5).toFixed(2).replace(/\.?0+$/, '');
   const longest = D.events.reduce((m, e) => (e.hours && e.hours > (m?.hours || 0) ? e : m), null);
   const WORDS = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven'];
 
   const IST_OFFSET = 5.5 * 3600e3;
   const weekday = (iso) => new Date(iso + 'T12:00:00+05:30').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' });
-  const toMinutes = (hhmm) => { const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
+  const toMinutes = (hhmm) => { const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm || ''); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
+  const clock12 = (hhmm) => { const m = toMinutes(hhmm); if (m == null) return hhmm; const h = Math.floor(m / 60); return `${((h + 11) % 12) + 1}:${pad(m % 60)} ${h < 12 ? 'am' : 'pm'}`; };
   /** Clock time "HH:MM" → ghatis (24 min) and palas (24 s) since 06:00. */
   const toGhati = (hhmm) => {
     const mins = toMinutes(hhmm);
@@ -69,9 +81,11 @@
     const d = ev.day > 0 && dayOf(ev.day);
     const m = d && toMinutes(ev.time);
     if (d && m != null) return Date.parse(`${d.date}T${ev.time}:00+05:30`);
-    return Date.parse(site.startsAt);
+    return DATES_SET ? Date.parse(site.startsAt) : NaN;
   }
-  const whenLabel = (ev) => (ev.day === 0 ? 'Online' : `Day ${ev.day} · ${ev.time}`);
+  const whenLabel = (ev) => (ev.day === 0 ? 'Online'
+    : ev.day ? `Day ${ev.day} · ${ev.time}`
+    : ev.time ? `${clock12(ev.time)} · date TBA` : 'Date TBA');
   function teamRange(team) {
     const t = String(team);
     const m = t.match(/(\d+)\s*[–-]\s*(\d+)/);
@@ -80,7 +94,9 @@
     const n = t.match(/^\s*(\d+)\s*$/);
     return n ? [Number(n[1]), Number(n[1])] : [0, 0];
   }
-  const durShort = (ev) => (!ev.hours ? 'Duration TBA' : /^\d+(–\d+)? hours$/.test(ev.duration) ? ev.duration : `${ev.hours} hours`);
+  const durShort = (ev) => (ev.durationShort || !ev.hours ? ev.durationShort || 'Duration TBA' : /^\d+(–\d+)? hours$/.test(ev.duration) ? ev.duration : `${ev.hours} hours`);
+  /** Short "when" for cards and lists: the slot once scheduled, else how long it runs. */
+  const whenOrLength = (ev) => (SCHEDULED ? whenLabel(ev) : ev.time ? `${durShort(ev)} · from ${clock12(ev.time)}` : durShort(ev));
   const prizeLabel = (ev) => (ev.prize ? (ev.split ? ev.split.map(rupees).join(' · ') : rupees(ev.prize)) : 'TBA');
 
   // The dial lays events out track by track.
@@ -94,6 +110,8 @@
   const DIAL_TIMES = DIAL_EVENTS.map((e) => { const s0 = eventStart(e); return { start: s0, end: s0 + (e.hours || 2) * 3600e3 }; });
   /** The event the dial should hold: the one live now (latest started), else the next to start. */
   function heldEvent(now) {
+    // before the schedule is out, the dial holds the flagship
+    if (!SCHEDULED) return { i: DIAL_INDEX.hackathon ?? 0, live: false, tba: true };
     let live = -1, next = -1;
     DIAL_TIMES.forEach((t, i) => {
       if (DIAL_EVENTS[i].day === 0) return;
@@ -308,14 +326,29 @@
   /* ------------------------------------------------------------------ *
    * Static bindings                                                    *
    * ------------------------------------------------------------------ */
-  const bindings = { ...site, eventCount: D.events.length, trackCount, dayCount: days, dayWord: WORDS[days] || String(days) };
+  const bindings = { ...site, dateLabel: DATE_TEXT, venue: VENUE_TEXT, eventCount: D.events.length, trackCount, dayCount: days, dayWord: WORDS[days] || String(days) };
   $$('[data-bind]').forEach((el) => { const v = bindings[el.dataset.bind]; if (v != null) el.textContent = v; });
 
   const startMs = Date.parse(site.startsAt);
   const endMs = Date.parse(site.endsAt);
-  $('#fDate').textContent = `${site.startsAt.slice(0, 16)}+05:30/P${days}D`;
-  $('#isoDate').textContent = `${site.startsAt.slice(0, 10)}/${site.endsAt.slice(0, 10)}`;
-  if (!site.scheduleIsProvisional) $('#provNote').remove();
+  const isoSpan = DATES_SET ? `${site.startsAt.slice(0, 10)}/${site.endsAt.slice(0, 10)}` : '';
+  $('#fDate').textContent = DATES_SET ? `${site.startsAt.slice(0, 16)}+05:30/P${festDays}D` : 'dates: "TBA"';
+  const iso = $('#isoDate');
+  if (isoSpan) iso.textContent = isoSpan;
+  else { iso.previousElementSibling.remove(); iso.remove(); } // the <br> before it, then the line
+  if (!PROV) $('#provNote').remove();
+  // the hero only lists what is known; the countdown block and the footer say what is still to come
+  if (!site.venue) $('#heroDate [data-bind="venue"]').remove();
+  if (!DATES_SET) { $('#heroDate [data-bind="dateLabel"]').remove(); $('#cdLabel').textContent = 'When'; }
+  // no way to reach the team yet: drop the contact section rather than show an empty one
+  if (!HAS_EMAIL && !SOCIALS.length) {
+    $('#reach').remove();
+    $('[data-kolam="reach"]').remove();
+    $$('a[href="#reach"]').forEach((a) => a.remove());
+  }
+  root.classList.toggle('no-dates', !DATES_SET);
+  root.classList.toggle('no-schedule', !SCHEDULED);
+  root.classList.toggle('no-email', !HAS_EMAIL);
 
   $$('[data-register]').forEach((a) => {
     if (site.registerUrl) { a.href = site.registerUrl; a.target = '_blank'; a.rel = 'noopener'; }
@@ -325,7 +358,7 @@
   const deck = $('#deckLink');
   if (site.partnerDeckUrl) { deck.href = site.partnerDeckUrl; deck.target = '_blank'; deck.rel = 'noopener'; }
   else {
-    deck.textContent = 'Request the deck';
+    deck.textContent = 'Partner with us';
     deck.href = '#reach';
     deck.dataset.topic = 'Partnerships';
   }
@@ -341,7 +374,8 @@
     try { navigator.clipboard.writeText(site.email).then(done, fail); } catch (_) { fail(); }
   }));
 
-  $('#socials').innerHTML = site.socials.map((s) => `<li><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.label)}</a></li>`).join('');
+  if (SOCIALS.length) $('#socials').innerHTML = SOCIALS.map((s) => `<li><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.label)}</a></li>`).join('');
+  else $('#socials').closest('div').remove();
 
   /* ------------------------------------------------------------------ *
    * Hero: wordmark, tracks, future layer                                *
@@ -351,11 +385,11 @@
   wm.innerHTML = [...WORD].map((ch, i) => `<span class="ch" data-ch="${ch}" style="--i:${i}">${ch}</span>`).join('');
   $('#fwm').innerHTML = [...WORD].map((ch) => `<span class="fch"><b>${ch}</b><i>${ch.charCodeAt(0).toString(2).padStart(8, '0')}</i></span>`).join('');
 
-  $('#tracks').innerHTML = D.ages.map((a, i) => {
+  if ($('#tracks')) $('#tracks').innerHTML = D.ages.map((a, i) => {
     const n = eventsOf(a.id).length;
     return `<li><button type="button" data-track="${a.id}" data-dial-track="${a.id}" aria-label="${esc(a.domain)}: ${n} events">${figSVG(i)}<span class="lg">${esc(a.domain)}</span><span class="sh">${esc(a.track)}</span><b>${n}</b></button></li>`;
   }).join('');
-  $('#fTracks').textContent = `tracks = [${D.ages.map((a) => `${a.slug}:${eventsOf(a.id).length}`).join(', ')}]`;
+  if ($('#fTracks')) $('#fTracks').textContent = `tracks = [${D.ages.map((a) => `${a.slug}:${eventsOf(a.id).length}`).join(', ')}]`;
 
   // Brahmi, the script Malayalam descends from, for the decode animation.
   const BRAHMI = [0x11005, 0x11006, 0x11007, 0x11009, 0x1100f].concat(Array.from({ length: 33 }, (_, i) => 0x11013 + i)).map((c) => String.fromCodePoint(c)).join('');
@@ -400,12 +434,13 @@
   }
 
   /* ------------------------------------------------------------------ *
-   * Countdown — Gregorian and traditional units, on rolling digits     *
+   * Countdown — on rolling digits                                       *
    * ------------------------------------------------------------------ */
   const cdEls = Object.fromEntries($$('#countdown [data-k]').map((b) => [b.dataset.k, b]));
   const cdLast = {};
-  function setCd(k, v) { if (cdLast[k] !== v) { cdLast[k] = v; odo(cdEls[k], v); } }
+  function setCd(k, v) { if (cdEls[k] && cdLast[k] !== v) { cdLast[k] = v; odo(cdEls[k], v); } }
   function updateCountdown(now) {
+    if (!DATES_SET) return; // the hero shows "Dates to be announced" instead
     let target = startMs;
     let label = 'Until the next yuga';
     if (now >= startMs && now < endMs) { target = endMs; label = 'Yugantra is live · time left'; }
@@ -418,10 +453,6 @@
     setCd('h', pad(Math.floor(rem / 36e5)));
     setCd('m', pad(Math.floor((rem % 36e5) / 6e4)));
     setCd('s', pad(Math.floor((rem % 6e4) / 1e3)));
-    setCd('dv', pad(dd));
-    setCd('gh', pad(Math.floor(rem / 1440000)));
-    setCd('pa', pad(Math.floor((rem % 1440000) / 24000)));
-    setCd('vp', pad(Math.floor((rem % 24000) / 400)));
   }
   function ghatiFraction(now) {
     const ist = now + IST_OFFSET;
@@ -438,24 +469,7 @@
     const night = isNight(frac);
     root.classList.toggle('night', night);
     const txt = `${Math.floor(g)} gh ${Math.floor((g % 1) * 60)} pa · ${night ? 'night' : 'day'}`;
-    if (txt !== lastGhatiText) { lastGhatiText = txt; $('#ghatiNow').textContent = txt; }
-  }
-
-  /* ------------------------------------------------------------------ *
-   * Marquee: the tagline, then the whole programme                      *
-   * ------------------------------------------------------------------ */
-  const mq = { a: $('#mqA'), b: $('#mqB'), wa: 0, wb: 0, xa: 0, xb: 0 };
-  function buildMarquee() {
-    const unitA = '<span class="mq-unit"><span class="o">Where tech defines the</span><span class="s" lang="ml">യുഗം</span><span class="sep"></span></span>';
-    const items = D.events.map((e) => `<span>${esc(e.name)}${e.prize ? ` <b>${rupees(e.prize)}</b>` : ''}</span>`).join('');
-    const unitB = `<span class="mq-unit">${items}<span><b>${trackCount}</b> tracks <b>${D.events.length}</b> events <b>1</b> new age</span></span>`;
-    [[mq.a, unitA, 'wa'], [mq.b, unitB, 'wb']].forEach(([el, unit, key]) => {
-      el.innerHTML = unit;
-      const w = el.firstElementChild.getBoundingClientRect().width || 800;
-      const copies = Math.ceil((innerWidth * 2) / w) + 1;
-      el.innerHTML = unit.repeat(copies);
-      mq[key] = w;
-    });
+    if (txt !== lastGhatiText) { lastGhatiText = txt; const gn = $('#ghatiNow'); if (gn) gn.textContent = txt; }
   }
 
   /* ------------------------------------------------------------------ *
@@ -556,18 +570,6 @@
           <span class="${st > 2 ? 'line on' : 'line'}">read backwards → <b class="ok">${ex.n}</b>: melakarta raga no. ${ex.n}</span>`;
       },
       step() { this.s++; if (this.s > 5) { this.s = 0; this.k = (this.k + 1) % KATAPAYADI.length; } this.draw(); }
-    },
-    you: { el: $('#roYou'), i: 0, every: 45, t: 0,
-      text: `> yugantra tracks\n${D.ages.map((a) => `${a.slug}(${eventsOf(a.id).length})`).join('  ')}\n> yugantra register --track=`,
-      draw(all) {
-        const s = all ? this.text : this.text.slice(0, this.i);
-        this.el.innerHTML = `<span class="k">yugantra-cli · v${site.edition}</span><span class="tx">${esc(s)}<span class="cursor-blink"></span></span>`;
-      },
-      step() {
-        this.i++;
-        if (this.i > this.text.length + 60) this.i = 0;
-        if (this.i <= this.text.length || this.i === 0) this.draw();
-      }
     }
   };
   let originVisible = false;
@@ -577,10 +579,9 @@
       readouts.artha.draw();
       readouts.chaturanga.i = readouts.chaturanga.path.length - 1; readouts.chaturanga.draw();
       readouts.katapayadi.draw();
-      readouts.you.draw(true);
       return;
     }
-    Object.values(readouts).forEach((r) => r.draw(r === readouts.you));
+    Object.values(readouts).forEach((r) => r.draw());
     new IntersectionObserver((entries) => { originVisible = entries.some((e) => e.isIntersecting); }, { rootMargin: '100px 0px' }).observe($('#origin'));
   }
   function tickReadouts(dtMs) {
@@ -721,11 +722,10 @@
 
     $('#evGrid').innerHTML = D.events.map((ev) => `<div class="ev-cell" data-era="${ev.era}">
       <button data-tilt="soft" class="ev${ev.status === 'tbc' ? ' is-tbc' : ''}" type="button" data-open="${ev.id}" data-dial-ev="${ev.id}" data-era="${ev.era}" aria-haspopup="dialog" aria-label="${esc(ev.name)}, ${esc(AGE[ev.era].domain)} track${ev.status === 'tbc' ? ', to be confirmed' : ''}. Open details.">
-        <span class="ev-top"><span class="era">${figSVG(AGE[ev.era].index)}${esc(AGE[ev.era].track)}</span><span>${ev.status === 'tbc' ? '<em class="tbc">To be confirmed</em>' : esc(whenLabel(ev))}</span></span>
+        <span class="ev-top"><span class="era">${figSVG(AGE[ev.era].index)}${esc(AGE[ev.era].track)}</span><span>${ev.status === 'tbc' ? '<em class="tbc">To be confirmed</em>' : esc(whenOrLength(ev))}</span></span>
         <span class="ev-glyph">${glyphSVG(ev)}</span>
         <span class="ev-name">${esc(ev.name)}</span>
-        <span class="ev-format">${esc(ev.format)}</span>
-        <span class="ev-foot">${footFor(ev)}<span class="ev-team">Team ${esc(ev.teamLabel)}<br>${esc(durShort(ev))}</span></span>
+        <span class="ev-foot">${footFor(ev)}</span>
         <span class="foil" aria-hidden="true"></span>
       </button>${pickBtn(ev)}</div>`).join('');
     drawOnView($('#evGrid'));
@@ -776,7 +776,9 @@
     if (!ev || !dlg.showModal || dlg.open) return;
     const age = AGE[ev.era];
     const day = dayOf(ev.day);
-    const whenTxt = ev.day === 0 ? 'Online' : `Day ${ev.day} · ${day ? weekday(day.date) : ''} · ${ev.time}${site.scheduleIsProvisional ? ' (provisional)' : ''}`;
+    const whenTxt = ev.day === 0 ? 'Online'
+      : ev.day ? `Day ${ev.day} · ${day ? weekday(day.date) : ''} · ${ev.time}${PROV ? ' (provisional)' : ''}`
+      : ev.time ? `Starts ${clock12(ev.time)} · date to be announced` : 'To be announced';
     const gh = ev.day ? toGhati(ev.time) : '';
     $('#dlgGlyph').innerHTML = glyphSVG(ev);
     $('#dlgEra').textContent = `${age.domain} track · ${age.count} · ${age.alt}`;
@@ -859,7 +861,17 @@
     const ev = slot[4] && EVENTS[slot[4]];
     return (ev && ev.hours) || 1;
   }
+  /** Before the running order is out: what is known, which is how long each event runs. */
+  function renderScheduleTba() {
+    $('#schedTitle').textContent = 'The running order, soon.';
+    $('#schedLead').textContent = 'Days, times and venues for every event will be announced here. Until then, this is how long each one runs.';
+    $('#schedTbaList').innerHTML = DIAL_EVENTS.map((ev) => {
+      const dur = ev.time ? `${durShort(ev)} · from ${clock12(ev.time)}` : durShort(ev);
+      return `<li data-dial-ev="${ev.id}" data-ev="${ev.id}">${figSVG(AGE[ev.era].index)}<button type="button" data-open="${ev.id}">${esc(ev.name)}</button><span>${esc(dur)}</span></li>`;
+    }).join('');
+  }
   function renderSchedule() {
+    if (!SCHEDULED) { renderScheduleTba(); return; }
     const now = Date.now();
     const todayIdx = D.schedule.findIndex((d) => {
       const s = Date.parse(`${d.date}T00:00:00+05:30`);
@@ -896,6 +908,7 @@
   let ribbonX = () => 0; // hour since Day 1 00:00 → % across the ribbon
   let ribbonMap = null;
   function renderRibbon() {
+    if (!SCHEDULED) return;
     // Nights (00:00–08:00) are drawn at a quarter scale so the daytime sessions get the room.
     const NIGHT = 0.25, DAY_W = 8 * NIGHT + 16, TOTAL_W = days * DAY_W, total = days * 24;
     const X = (h) => { const d = Math.min(days - 1, Math.floor(h / 24)); const hod = h - d * 24; return d * DAY_W + (hod < 8 ? hod * NIGHT : 8 * NIGHT + (hod - 8)); };
@@ -978,7 +991,7 @@
     $('#stageLead').textContent = `${ev.blurb} Prizes: ${prizeLabel(ev)}. Entry ${ev.fee}.`;
     const plates = [
       { n: 'I', when: 'Round 1 · Online', title: 'Qualifiers', seal: 'ONLINE QUALIFIERS · BAND COMPETITION · YUGANTRA ·', body: `Entry ${ev.fee}. Team size to be announced.`, inside: 'Submit online' },
-      { n: 'II', when: `Round 2 · Day ${ev.day} · ${ev.time}${site.scheduleIsProvisional ? ' (provisional)' : ''}`, title: 'Live finale', seal: 'FINALISTS SEALED UNTIL QUALIFIERS CLOSE · LIVE ·', body: `${prizeLabel(ev)} for first and second. ${(ev.extras || []).join('. ')}.`, inside: 'Finalists: after qualifiers' }
+      { n: 'II', when: ev.day ? `Round 2 · Day ${ev.day} · ${ev.time}${PROV ? ' (provisional)' : ''}` : 'Round 2 · Live · date to be announced', title: 'Live finale', seal: 'FINALISTS SEALED UNTIL QUALIFIERS CLOSE · LIVE ·', body: `${prizeLabel(ev)} for first and second. ${(ev.extras || []).join('. ')}.`, inside: 'Finalists: after qualifiers' }
     ];
     $('#plates').innerHTML = plates.map((p, i) => `
       <article class="plate" data-reveal data-dial-ev="band" data-ev="band">
@@ -1001,16 +1014,17 @@
   }
   function renderPartners() {
     $('#assoc').innerHTML = (D.associations || []).map((a) => `<div class="assoc-card"><span class="k">In association with</span><b>${esc(a.name)}</b><span>${esc(a.full)}</span><i>${esc(a.role)}</i></div>`).join('');
-    const vis = (t) => {
-      if (/title/i.test(t.tier)) return `<div class="tv-title" aria-hidden="true"><span>${esc(site.name)} ${esc(site.edition)}</span><i>×</i><span class="tv-you">Your brand</span></div>`;
-      if (/track/i.test(t.tier)) return `<ul class="tv-tracks">${D.ages.filter((a) => a.years).map((a) => `<li data-dial-track="${a.id}">${figSVG(AGE[a.id].index)}<span>${esc(a.domain)}</span><i>${eventsOf(a.id).length} events</i></li>`).join('')}</ul>`;
-      return `<ul class="tv-seats" aria-hidden="true">${Array.from({ length: t.slots }, (_, i) => `<li>${pad(i + 1)}</li>`).join('')}</ul>`;
-    };
+    // tiers are shown only once the team has decided them (content.js → partners)
+    if (!D.partners.length) {
+      $('#tiers').remove();
+      if (!HAS_EMAIL) $('#partnersLead').textContent = 'Partnership details will be announced soon.';
+      return;
+    }
+    $('#partnersLead').textContent = "Put your name on the fest, a track or a single event. Here's what each partnership covers.";
     $('#tiers').innerHTML = D.partners.map((t) => `<article class="tier" data-reveal>
         <p class="tier-n"><span class="cnt"></span><small>${t.slots === 1 ? 'slot' : 'slots'}</small></p>
         <h3>${esc(t.tier)}</h3>
         <p class="tier-note">${esc(t.note)}</p>
-        ${vis(t)}
       </article>`).join('');
     $$('#tiers .cnt').forEach((el, i) => odoOnView(el, String(D.partners[i].slots)));
   }
@@ -1019,58 +1033,17 @@
   }
 
   /* ------------------------------------------------------------------ *
-   * Spotlight — the 24 hours on one clock, what's included, the face-off *
+   * Spotlight — the 24 hours on one clock and the facts that matter    *
    * ------------------------------------------------------------------ */
-  const fmt12 = (hhmm) => { const m = toMinutes(hhmm); if (m == null) return hhmm; const h = Math.floor(m / 60); return `${((h + 11) % 12) + 1}:${pad(m % 60)} ${h < 12 ? 'am' : 'pm'}`; };
+  const fmt12 = clock12;
   const cap1 = (s) => s.charAt(0).toUpperCase() + s.slice(1);
   const splitFact = (x) => { const i = x.indexOf(':'); return i > 0 ? [x.slice(0, i), cap1(x.slice(i + 1).trim())] : ['Also', x]; };
   const factsHTML = (rows) => rows.map(([k, v, odoV]) => `<div><dt>${esc(k)}</dt><dd>${odoV ? `<span class="cnt" data-v="${esc(odoV)}"></span>` : esc(v)}</dd></div>`).join('');
-  function parseFood(s) {
-    return String(s || '').split(/,\s*|\s+and\s+/i).map((p) => p.trim()).filter(Boolean).flatMap((p) => {
-      const m = /^(\d+)\s+(.+?)s?$/i.exec(p);
-      const name = (m ? m[2] : p).toLowerCase();
-      return Array.from({ length: m ? Number(m[1]) : 1 }, () => name);
-    });
-  }
-  const FOOD_ICON = {
-    breakfast: '<path d="M-11 5H11M-6 5A6 6 0 0 1 6 5M0 -9V-5M-8 -4L-5.5 -1.5M8 -4L5.5 -1.5M-11 9H11" />',
-    lunch: '<circle r="4.5"/><path d="M0 -11V-7.5M0 7.5V11M-11 0H-7.5M7.5 0H11M-7.8 -7.8L-5.3 -5.3M7.8 7.8L5.3 5.3M-7.8 7.8L-5.3 5.3M7.8 -7.8L5.3 -5.3"/>',
-    dinner: '<path d="M2 -10A10 10 0 1 0 10 3A7.5 7.5 0 0 1 2 -10Z"/>',
-    snack: '<path d="M-8 -3H6V2Q6 8 -1 8Q-8 8 -8 2Z"/><path d="M6 -1H8Q10.5 -1 10.5 1.5Q10.5 4 8 4H5.5M-4 -10Q-2 -8 -4 -6M1 -10Q3 -8 1 -6"/>'
-  };
-  const PERSON = '<circle cy="-5" r="5"/><path d="M-10 12Q-10 2 0 2Q10 2 10 12"/>';
-
   const clk = { els: null, visible: false, hover: null, t0: 0, start: 0, hours: 24, day: 1, last: '' };
-  function goodie(kind, ev) {
-    const a = AGE[ev.era];
-    if (kind === 'id') return `<figure class="gd"><div class="gd-id" data-tilt>
-        <span class="gd-slot" aria-hidden="true"></span>
-        <span class="gd-k">${esc(site.name)} ${esc(site.edition)} · Participant</span>
-        <span class="gd-photo" aria-hidden="true"><svg viewBox="-14 -14 28 28">${PERSON}</svg></span>
-        <b class="gd-name">Your name</b>
-        <span class="gd-ev">${figSVG(a.index)}${esc(ev.name)}</span>
-        <span class="gd-meta">${esc(ev.teamLabel)} · ${esc(ev.venue)}</span>
-        <span class="gd-ml" lang="ml" aria-hidden="true">യുഗം</span>
-        <span class="foil" aria-hidden="true"></span>
-      </div><figcaption>ID card</figcaption></figure>`;
-    if (kind === 'cert') return `<figure class="gd gd-wide"><div class="gd-cert" data-tilt>
-        <span class="gd-k">Certificate</span>
-        <b class="gd-cert-ev">${esc(ev.name)}</b>
-        <span class="gd-line">Your name</span>
-        <span class="gd-sub">${esc(site.name)} ${esc(site.edition)} · Kollam Era ${esc(site.kollamEra)}</span>
-        <span class="gd-seal" aria-hidden="true">${glyphSVG(ev)}</span>
-        <span class="foil" aria-hidden="true"></span>
-      </div><figcaption>Certificate</figcaption></figure>`;
-    return `<figure class="gd"><div class="gd-sheet" data-tilt>
-        ${D.ages.map((x, i) => `<span class="stk" style="--r:${[-8, 6, -4, 9, -6][i] || 0}deg" data-dial-track="${x.id}">${figSVG(i)}<i>${esc(x.track)}</i></span>`).join('')}
-        <span class="stk stk-ml" lang="ml">യുഗം</span>
-        <span class="foil" aria-hidden="true"></span>
-      </div><figcaption>Stickers</figcaption></figure>`;
-  }
   function renderSpotlight() {
     const ev = EVENTS.hackathon;
     if (!ev) { $('#spotlight').remove(); return; }
-    const prov = site.scheduleIsProvisional ? ' (provisional)' : '';
+    const prov = PROV ? ' (provisional)' : '';
     $('#spotLead').textContent = ev.blurb;
     $('.spot-clock').dataset.dialEv = ev.id;
 
@@ -1134,78 +1107,15 @@
     new IntersectionObserver((en) => { const v = en[0].isIntersecting; if (v && !clk.visible) clk.t0 = clock; clk.visible = v; }).observe(svg);
 
     // ---- facts, from the event itself
+    const gl = /:\s*(.+)$/.exec(ev.goodies || '');
     $('#spotFacts').innerHTML = factsHTML([
-      ['Starts', `${fmt12(ev.time)} · Day ${ev.day}${prov}`],
-      ['Runs', `${ev.hours} hours, through the night`],
-      ['Team', ev.teamLabel],
-      ['Entry', ev.fee],
-      ['Venue', ev.venue === 'TBA' ? 'To be announced' : ev.venue],
+      ['Starts', ev.day ? `${fmt12(ev.time)} · Day ${ev.day}${prov}` : `${fmt12(ev.time)} · date to be announced`],
+      ['Team', `${ev.teamLabel} · ${ev.fee}`],
       ['Prize pool', '', ev.prize ? rupees(ev.prize) : 'TBA'],
-      ...(ev.extras || []).map(splitFact)
+      ['You take home', gl ? cap1(gl[1]) : 'To be announced'],
+      ...(ev.food ? [['Food, included', cap1(ev.food.toLowerCase())]] : [])
     ]);
     $$('#spotFacts .cnt').forEach((el) => odoOnView(el, el.dataset.v));
-
-    // ---- fuel: parsed from the food line, no invented timings
-    const food = parseFood(ev.food);
-    if (food.length) {
-      const snacks = food.filter((f) => f === 'snack').length, meals = food.length - snacks;
-      $('#fuel').innerHTML = `<p class="fuel-k">Food, included · ${meals} meals${snacks ? ` + ${snacks} snacks` : ''}</p>
-        <ul class="fuel-row">${food.map((f, i) => `<li style="--k:${i}"><svg viewBox="-12 -12 24 24" aria-hidden="true">${FOOD_ICON[f] || FOOD_ICON.lunch}</svg><span>${esc(f)}</span></li>`).join('')}</ul>`;
-    } else $('#fuel').remove();
-
-    // ---- what you take home: the goodies line, rendered
-    const list = /:\s*(.+)$/.exec(ev.goodies || '');
-    const kinds = list ? list[1].split(/,\s*|\s+and\s+/i).map((g) => (/id card/i.test(g) ? 'id' : /certificate/i.test(g) ? 'cert' : /sticker/i.test(g) ? 'stickers' : null)).filter(Boolean) : [];
-    if (kinds.length) {
-      const others = D.events.filter((e) => e.id !== ev.id && e.goodies).map((e) => e.name);
-      $('#takeNote').textContent = `${ev.goodies} with the ${ev.name}.${others.length ? ` ${others.join(', ').replace(/, ([^,]*)$/, ' and $1')} include goodies too.` : ''} Designs shown are illustrative.`;
-      $('#takeRow').innerHTML = kinds.map((k) => goodie(k, ev)).join('');
-    } else $('.take').remove();
-
-    // ---- the Pitchathon's face-off: seats parsed from its panels
-    const pe = EVENTS.pitchathon;
-    if (!pe) { $('#faceoff').remove(); return; }
-    const panels = (pe.extras || []).map((x) => /^(\w+)\s+panel:\s*(\d+)\s+(\w+)/i.exec(x)).filter(Boolean).map((m) => ({ n: Number(m[2]), who: m[3] }));
-    const G = panels.length, GAP = 18, SPAN = 150, each = G ? (SPAN - GAP * (G - 1)) / G : 0;
-    let seats = '', groupLabels = '', sight = '', k = 0;
-    panels.forEach((p, g) => {
-      const a0 = -90 - SPAN / 2 + g * (each + GAP);
-      for (let i = 0; i < p.n; i++) {
-        const a = ((a0 + (each * (i + 0.5)) / p.n) * Math.PI) / 180;
-        const x = Math.cos(a) * 118, y = 96 + Math.sin(a) * 118;
-        seats += `<g class="fo-seat g${g}" style="--k:${k++}" transform="translate(${f2(x)} ${f2(y)})"><circle r="11"/><svg x="-8" y="-8" width="16" height="16" viewBox="-14 -14 28 28">${PERSON}</svg></g>`;
-        sight += `M0 104L${f2(x)} ${f2(y)}`;
-      }
-      const am = ((a0 + each / 2) * Math.PI) / 180;
-      groupLabels += `<text class="fo-gl" x="${f2(Math.cos(am) * 150)}" y="${f2(96 + Math.sin(am) * 150)}">${p.n} ${esc(p.who)}</text>`;
-    });
-    const [need, max] = teamRange(pe.team);
-    const team = Array.from({ length: max }, (_, i) => `<circle cx="${f2((i - (max - 1) / 2) * 16)}" cy="112" r="5"${i < need ? ' class="fillc"' : ''}/>`).join('');
-    const parts = /(\d+)\s*hours?\s*\+\s*(\d+)-hour/i.exec(pe.duration);
-    const [build, live] = parts ? [Number(parts[1]), Number(parts[2])] : [pe.hours || 0, 0];
-    $('#faceoff').dataset.dialEv = pe.id;
-    $('#faceoff').dataset.ev = pe.id;
-    $('#faceoff').innerHTML = `
-      <div class="fo-text">
-        <p class="eyebrow">${esc(AGE[pe.era].domain)} · ${esc(pe.name)}</p>
-        <h3 class="fo-h">The CEO Face-off, live.</h3>
-        <p class="fo-p">${esc(pe.blurb)}</p>
-        <dl class="facts facts-sm">${factsHTML([['Team', pe.teamLabel], ['Entry', pe.fee], ['Prize pool', '', pe.prize ? rupees(pe.prize) : 'TBA'], ['Food', pe.food || 'TBA']])}</dl>
-        <button class="btn" type="button" data-open="${pe.id}">${esc(pe.name)} details</button>
-      </div>
-      <div class="fo-vis" aria-hidden="true">
-        <svg class="fo-svg" viewBox="-170 -50 340 190">
-          <path class="fo-sight" d="${sight}"/>
-          ${seats}${groupLabels}
-          <text class="fo-timer" y="44">${pad(live * 60)}:00</text>
-          <text class="fo-tl" y="62">minutes, live</text>
-          <g class="fo-team">${team}</g>
-          <text class="fo-gl you" y="136">Your team</text>
-        </svg>
-        <div class="fo-bar">${Array.from({ length: build + live }, (_, i) => `<i class="${i < build ? 'b' : 'l'}" style="--k:${i}"></i>`).join('')}</div>
-        <p class="fo-bar-k"><span>${build} hours · build the pitch</span><span>${live} hour · face-off</span></p>
-      </div>`;
-    $$('#faceoff .cnt').forEach((el) => odoOnView(el, el.dataset.v));
   }
   const clockHour = () => (clk.hover != null ? clk.hover : reduced ? 0 : ((clock - clk.t0) % clk.hours + clk.hours) % clk.hours);
   function updateClock() {
@@ -1229,46 +1139,8 @@
   }
 
   /* ------------------------------------------------------------------ *
-   * Passes — how to register, a sample pass, every fee on one table     *
+   * Passes — how to register and every fee on one table                *
    * ------------------------------------------------------------------ */
-  function codeGrid(seed) {
-    let h = 2166136261;
-    for (const c of seed) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
-    const rnd = () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return (h >>> 0) / 4294967296; };
-    let cells = '';
-    for (let y = 0; y < 9; y++) for (let x = 0; x < 4; x++) {
-      if (rnd() < 0.5) continue;
-      cells += `<rect x="${x}" y="${y}" width="0.86" height="0.86"/>`;
-      if (x < 3) cells += `<rect x="${6 - x}" y="${y}" width="0.86" height="0.86"/>`;
-    }
-    return `<svg class="pass-code" viewBox="-0.5 -0.5 8 10" aria-hidden="true">${cells}</svg>`;
-  }
-  let passFor = '';
-  function setPass(id) {
-    const ev = EVENTS[id];
-    if (!ev || id === passFor) return;
-    passFor = id;
-    const a = AGE[ev.era];
-    const code = `YG${site.edition.slice(2)} · ${(ev.short || ev.id).replace(/[^A-Za-z]/g, '').slice(0, 4).toUpperCase()} · 0001`;
-    const pass = $('#pass');
-    pass.innerHTML = `<div class="pass-main">
-        <div class="pass-top"><span class="pass-brand">${esc(site.name)} ’${esc(site.edition.slice(2))}</span><span>Event pass</span></div>
-        <span class="pass-track">${figSVG(a.index)}${esc(a.track)}</span>
-        <b class="pass-ev">${esc(ev.name)}</b>
-        <dl class="pass-dl">
-          <div><dt>When</dt><dd>${esc(ev.day === 0 ? 'Online' : `Day ${ev.day} · ${ev.time}`)}</dd></div>
-          <div><dt>Venue</dt><dd>${esc(ev.venue)}</dd></div>
-          <div><dt>Team</dt><dd>${esc(ev.teamLabel)}</dd></div>
-          <div><dt>Entry</dt><dd>${esc(ev.fee)}</dd></div>
-        </dl>
-        <span class="pass-glyph">${glyphSVG(ev)}</span>
-      </div>
-      <div class="pass-stub">${codeGrid(ev.id)}<span class="pass-no">${esc(code)}</span></div>
-      <span class="pass-sample" aria-hidden="true">Sample</span>
-      <span class="foil" aria-hidden="true"></span>`;
-    pass.setAttribute('aria-label', `Sample pass for ${ev.name}`);
-    redraw($('.glyph', pass));
-  }
   function renderPasses() {
     const amount = (e) => { const m = /₹\s?([\d,]+)/.exec(e.fee); return m ? Number(m[1].replace(/,/g, '')) : null; };
     const priced = D.events.filter((e) => amount(e) != null).sort((a, b) => amount(a) - amount(b));
@@ -1276,43 +1148,40 @@
     const tba = D.events.length - priced.length;
     $('#passLead').textContent = `Each event has its own entry fee${lo ? `, from ${lo.fee} for ${lo.name} to ${hi.fee} for the ${hi.name}` : ''}. You pay when you register.`;
     const steps = [
-      ['Pick your events', `${D.events.length} events across ${D.ages.length} tracks. Star the ones you want: My Yuga keeps your plan, flags clashes and adds it to your calendar.`, '#events'],
-      ['Register', site.registerUrl ? 'Register from the event you picked.' : `Registration opens ${site.registrationOpens}. The link goes live on every event.`],
-      ['Pay the entry fee', `Per person or per team, as listed below.${tba ? ` ${tba} fees are still to be announced.` : ''}`],
-      ['Turn up', `Your event's day, time and venue are on the schedule${site.scheduleIsProvisional ? ', provisional for now' : ''}.`, '#schedule']
+      ['Pick your events', 'Star the ones you want. My Yuga keeps your plan.', '#events'],
+      ['Register', site.registerUrl ? 'From the event you picked.' : `Opens ${site.registrationOpens}, on every event.`],
+      ['Pay the entry fee', `Per person or per team, as listed.${tba ? ` ${tba} still to be announced.` : ''}`],
+      ['Turn up', SCHEDULED ? 'Day, time and venue are on the schedule.' : 'Day, time and venue will be on the schedule.', '#schedule']
     ];
     $('#steps').innerHTML = steps.map(([t, d, href], i) => `<li style="--k:${i}"><span class="st-n">${pad(i + 1)}</span><div><h3>${href ? `<a href="${href}">${esc(t)} <i aria-hidden="true">→</i></a>` : esc(t)}</h3><p>${esc(d)}</p></div></li>`).join('');
-    $('.pass-fig figcaption').textContent = 'Sample pass design. Point at an event in the table to preview its pass.';
-    setPass(EVENTS.hackathon ? 'hackathon' : D.events[0].id);
 
-    const prov = site.scheduleIsProvisional;
+    const prov = PROV;
     $('#fees').innerHTML = `<caption>Every event at a glance${prov ? ' · days and times are provisional' : ''}</caption>
-      <thead><tr><th scope="col"><span class="sr">Track</span></th><th scope="col">Event</th><th scope="col">Team</th><th scope="col">Entry fee</th><th scope="col">Prize pool</th><th scope="col">When</th><th scope="col"><span class="sr">My Yuga</span></th></tr></thead>
+      <thead><tr><th scope="col"><span class="sr">Track</span></th><th scope="col">Event</th><th scope="col">Team</th><th scope="col">Entry fee</th><th scope="col">Prize pool</th><th scope="col">${SCHEDULED ? 'When' : 'Duration'}</th><th scope="col"><span class="sr">My Yuga</span></th></tr></thead>
       <tbody>${DIAL_EVENTS.map((ev) => {
         const a = AGE[ev.era];
         const prize = ev.prize ? rupees(ev.prize) : ev.kind === 'competition' ? 'TBA' : '—';
-        return `<tr data-ev="${ev.id}" data-dial-ev="${ev.id}" data-pass="${ev.id}">
+        return `<tr data-ev="${ev.id}" data-dial-ev="${ev.id}">
           <td class="fe-fig" title="${esc(a.domain)}">${figSVG(a.index)}</td>
           <th scope="row"><button type="button" data-open="${ev.id}">${esc(ev.name)}</button>${ev.status === 'tbc' ? ' <em class="tbc">TBC</em>' : ''}</th>
           <td data-k="Team">${esc(ev.teamLabel)}</td>
           <td data-k="Entry">${esc(ev.fee)}</td>
           <td data-k="Prize" class="fe-prize">${prize}</td>
-          <td data-k="When">${esc(whenLabel(ev))}</td>
+          <td data-k="${SCHEDULED ? 'When' : 'Duration'}">${esc(SCHEDULED ? whenLabel(ev) : durShort(ev))}</td>
           <td class="fe-pick">${pickBtn(ev)}</td></tr>`;
       }).join('')}</tbody>`;
-    const pick = (e) => { const tr = e.target.closest && e.target.closest('[data-pass]'); if (tr) setPass(tr.dataset.pass); };
-    $('#fees').addEventListener('pointerover', pick);
-    $('#fees').addEventListener('focusin', pick);
   }
 
   /* ------------------------------------------------------------------ *
    * Contact — a form that writes the email for you                      *
    * ------------------------------------------------------------------ */
   function initReach() {
+    if (!$('#reachForm')) return;
     const topics = ['Events', 'Registration', 'Partnerships', 'Other'];
     const topic = $('#fTopic');
     topic.innerHTML = topics.map((t) => `<option>${t}</option>`).join('');
-    $('#reachSocials').innerHTML = site.socials.map((s) => `<li><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.label)} <i aria-hidden="true">↗</i></a></li>`).join('');
+    if (SOCIALS.length) $('#reachSocials').innerHTML = SOCIALS.map((s) => `<li><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.label)} <i aria-hidden="true">↗</i></a></li>`).join('');
+    else $('#reachSocials').remove();
     const form = $('#reachForm'), note = $('#formNote');
     const fields = { name: $('#fName'), email: $('#fEmail'), message: $('#fMsg') };
     const checks = {
@@ -1434,7 +1303,7 @@
   function renderMy() {
     const ids = sortedPicks();
     const cl = clashes();
-    const prov = site.scheduleIsProvisional ? ' Times are from the provisional schedule.' : '';
+    const prov = !SCHEDULED ? ' Days and times are added when the schedule is announced.' : PROV ? ' Times are from the provisional schedule.' : '';
     $('#myNote').textContent = ids.length
       ? `${ids.length} event${ids.length > 1 ? 's' : ''} across ${new Set(ids.map((id) => EVENTS[id].era)).size} track${new Set(ids.map((id) => EVENTS[id].era)).size > 1 ? 's' : ''}.${prov}`
       : 'Nothing here yet. Star events on their cards, in the fee table or in any event.';
@@ -1444,13 +1313,13 @@
       return `<li class="my-item${clash ? ' clash' : ''}">
         <span class="my-g">${glyphSVG(ev)}</span>
         <span class="my-t"><button type="button" class="my-open" data-open="${id}">${esc(ev.name)}</button>
-          <span class="my-s">${figSVG(a.index)}${esc(a.domain)} · ${f ? esc(slotLabel(f)) : esc(whenLabel(ev))} · ${esc(ev.fee === 'TBA' ? 'Fee TBA' : ev.fee)}</span></span>
+          <span class="my-s">${figSVG(a.index)}${esc(a.domain)} · ${f ? esc(slotLabel(f)) : esc(whenOrLength(ev))} · ${esc(ev.fee === 'TBA' ? 'Fee TBA' : ev.fee)}</span></span>
         ${pickBtn(ev)}
       </li>`;
     }).join('');
     $('#myClash').innerHTML = cl.length
       ? `<p class="my-clash-k">${cl.length} clash${cl.length > 1 ? 'es' : ''}</p><ul>${cl.map(([x, y]) => `<li><b>${esc(EVENTS[x.id].name)}</b> (${esc(slotLabel(x))}, ${Math.round((x.end - x.start) / 36e5 * 10) / 10} h) overlaps <b>${esc(EVENTS[y.id].name)}</b> (${esc(slotLabel(y))}).</li>`).join('')}</ul>`
-      : ids.length > 1 ? '<p class="my-ok">No clashes: you can make all of them.</p>' : '';
+      : ids.length > 1 && SCHEDULED ? '<p class="my-ok">No clashes: you can make all of them.</p>' : '';
     $$('[data-pick]', myDlg).forEach((b) => b.setAttribute('aria-pressed', 'true'));
     ['#myIcs', '#myMake', '#myClear'].forEach((sel) => { $(sel).disabled = !ids.length; });
   }
@@ -1504,8 +1373,8 @@
         `UID:${x.id}-${x.d.day}-${x.slot[0].replace(':', '')}@yugantra-${site.edition}`,
         `DTSTAMP:${utc(Date.now())}`, `DTSTART:${utc(x.start)}`, `DTEND:${utc(x.end)}`,
         `SUMMARY:${E(`${x.slot[1]} · ${site.name} ${site.edition}`)}`,
-        `LOCATION:${E(x.slot[2] === 'TBA' ? `Venue to be announced · ${site.venue}` : `${x.slot[2]} · ${site.venue}`)}`,
-        `DESCRIPTION:${E([ev.format, `Entry: ${ev.fee}`, ev.prize ? `Prize pool: ${rupees(ev.prize)}` : '', site.scheduleIsProvisional ? 'Timing is provisional. Check the site before you go.' : ''].filter(Boolean).join('\n'))}`,
+        `LOCATION:${E([x.slot[2] === 'TBA' ? 'Room to be announced' : x.slot[2], site.venue].filter(Boolean).join(' · '))}`,
+        `DESCRIPTION:${E([ev.format, `Entry: ${ev.fee}`, ev.prize ? `Prize pool: ${rupees(ev.prize)}` : '', PROV ? 'Timing is provisional. Check the site before you go.' : ''].filter(Boolean).join('\n'))}`,
         'END:VEVENT');
     });
     L.push('END:VCALENDAR');
@@ -1610,7 +1479,7 @@
       g.fillStyle = TXT; g.font = '400 44px "Marcellus", Georgia, serif'; g.textAlign = 'left';
       g.fillText(ev.name, 214, y);
       g.fillStyle = SAGE; g.font = '400 23px "DM Mono", monospace';
-      spaced(g, `${AGE[ev.era].track} · ${f ? slotLabel(f).toUpperCase() : whenLabel(ev).toUpperCase()}`, 214, y + 38, 2, 'left');
+      spaced(g, `${AGE[ev.era].track} · ${f ? slotLabel(f).toUpperCase() : whenOrLength(ev).toUpperCase()}`, 214, y + 38, 2, 'left');
       g.strokeStyle = 'rgba(95,81,61,0.6)'; g.lineWidth = 1; g.beginPath(); g.moveTo(96, y + 60); g.lineTo(984, y + 60); g.stroke();
       y += 96;
     });
@@ -1619,9 +1488,9 @@
     const fy = Math.max(1540, y - 24);
     g.strokeStyle = LINE; g.beginPath(); g.moveTo(96, fy); g.lineTo(984, fy); g.stroke();
     g.fillStyle = TXT; g.font = '300 30px "Jost", sans-serif'; g.textAlign = 'left';
-    g.fillText(site.dateLabel, 96, fy + 50);
+    g.fillText(DATE_TEXT, 96, fy + 50);
     g.fillStyle = SAGE; g.font = '400 20px "DM Mono", monospace';
-    spaced(g, `KOLLAM ERA ${site.kollamEra} · ${site.venue.toUpperCase()}`, 96, fy + 88, 3, 'left');
+    spaced(g, `KOLLAM ERA ${site.kollamEra} · ${VENUE_TEXT.toUpperCase()}`, 96, fy + 88, 3, 'left');
     g.fillStyle = 'rgba(168,181,175,0.6)'; g.font = '400 17px "DM Mono", monospace';
     spaced(g, 'MY PLAN · NOT A TICKET', 984, fy + 50, 3, 'right');
     return c;
@@ -1692,7 +1561,7 @@
     if (m.length > 1) { tPrint(`"${T(q)}" matches ${m.length}: ${m.map((e) => tc(`${verb} ${e.id}`)).join(' ')}`, 'dim'); return null; }
     return m[0];
   }
-  const eventLine = (e) => `${tg(AGE[e.era].track.padEnd(15))}${col(e.name, 28)}${col(e.prize ? rupees(e.prize) : e.kind === 'competition' ? 'prize TBA' : e.kind, 12)}${T(whenLabel(e))}${e.status === 'tbc' ? ' <span class="err">tbc</span>' : ''}`;
+  const eventLine = (e) => `${tg(AGE[e.era].track.padEnd(15))}${col(e.name, 28)}${col(e.prize ? rupees(e.prize) : e.kind === 'competition' ? 'prize TBA' : e.kind, 12)}${T(whenOrLength(e))}${e.status === 'tbc' ? ' <span class="err">tbc</span>' : ''}`;
   const CMDS = {
     help: { a: '', d: 'what you can type', run() {
       Object.entries(CMDS).forEach(([k, c]) => tPrint(`${tc(k)}${' '.repeat(Math.max(1, 10 - k.length))}${tg(c.a.padEnd(11))}${T(c.d)}`));
@@ -1713,10 +1582,15 @@
       if (e) { tPrint(`opening ${tk(e.name)}`); setTimeout(() => openEvent(e.id), 120); }
     } },
     schedule: { a: '[day]', d: 'the running order', run(q) {
+      if (!SCHEDULED) {
+        tPrint('running order: to be announced. how long each event runs:', 'dim');
+        DIAL_EVENTS.forEach((e) => tPrint(`  ${col(e.name, 28)}${tg(e.time ? `${durShort(e)} · from ${clock12(e.time)}` : durShort(e))}`));
+        return;
+      }
       const days = q ? D.schedule.filter((d) => String(d.day) === q.replace(/\D/g, '')) : D.schedule;
       if (!days.length) { tPrint(`days: ${D.schedule.map((d) => tc(`schedule ${d.day}`)).join(' ')}`, 'err'); return; }
       days.forEach((d) => {
-        tPrint(`${tk(`Day ${d.day}`)} ${tg(weekday(d.date))}${site.scheduleIsProvisional ? ' <span class="dim">(provisional)</span>' : ''}`);
+        tPrint(`${tk(`Day ${d.day}`)} ${tg(weekday(d.date))}${PROV ? ' <span class="dim">(provisional)</span>' : ''}`);
         d.slots.forEach((sl) => tPrint(`  ${tk(sl[0])} ${tg(col(toGhati(sl[0]), 13))}${col(sl[1], 30)}${T(sl[2] === 'TBA' ? 'venue TBA' : sl[2])}`));
       });
     } },
@@ -1728,16 +1602,17 @@
       DIAL_EVENTS.forEach((e) => tPrint(`${col(e.name, 28)}${tk(col(e.fee, 26))}${tg(`team ${e.teamLabel}`)}`));
     } },
     next: { a: '', d: 'what\'s live, or up next', run() {
+      if (!SCHEDULED) { tPrint(`schedule: to be announced · flagship ${tk(EVENTS.hackathon ? EVENTS.hackathon.name : D.events[0].name)} · ${tc('schedule')}`, 'dim'); return; }
       const h = heldEvent(Date.now()), e = DIAL_EVENTS[h.i], t = DIAL_TIMES[h.i].start - Date.now();
       const dd = Math.floor(t / 864e5), hh = Math.floor((t % 864e5) / 36e5), mm = Math.floor((t % 36e5) / 6e4);
-      tPrint(`${tk(h.live ? 'live now' : 'next up')} ${T(e.name)} · ${T(fmtWhen(DIAL_TIMES[h.i].start))}${site.scheduleIsProvisional ? ' (provisional)' : ''}`);
+      tPrint(`${tk(h.live ? 'live now' : 'next up')} ${T(e.name)} · ${T(fmtWhen(DIAL_TIMES[h.i].start))}${PROV ? ' (provisional)' : ''}`);
       if (!h.live) tPrint(`in ${dd}d ${hh}h ${mm}m · ${tc(`open ${e.id}`)}`, 'dim');
     } },
     time: { a: '', d: 'now, in three calendars', run() {
       const now = Date.now(), g = ghatiFraction(now) * 60;
       tPrint(`${tk('IST')}      ${T(new Date(now).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'medium' }))}`);
       tPrint(`${tk('ghati')}    ${Math.floor(g)} gh ${Math.floor((g % 1) * 60)} pa since 06:00 IST`);
-      tPrint(`${tk('fest')}     ${T(site.dateLabel)} · Kollam Era ${T(site.kollamEra)}`);
+      tPrint(`${tk('fest')}     ${T(DATE_TEXT)} · Kollam Era ${T(site.kollamEra)}`);
     } },
     go: { a: '<section>', d: 'jump to a part of the page', run(q) {
       const k = norm(q);
@@ -1753,16 +1628,17 @@
     mine: { a: '', d: 'your plan, with clashes', run() {
       const ids = sortedPicks();
       if (!ids.length) { tPrint(`nothing picked yet. try ${tc('pick hackathon')}`, 'dim'); return; }
-      ids.forEach((id) => { const f = firstSlot(id); tPrint(`★ ${col(EVENTS[id].name, 28)}${tg(f ? slotLabel(f) : whenLabel(EVENTS[id]))}`); });
+      ids.forEach((id) => { const f = firstSlot(id); tPrint(`★ ${col(EVENTS[id].name, 28)}${tg(f ? slotLabel(f) : whenOrLength(EVENTS[id]))}`); });
       const cl = clashes();
       cl.forEach(([x, y]) => tPrint(`clash: ${T(EVENTS[x.id].name)} overlaps ${T(EVENTS[y.id].name)} (${T(slotLabel(y))})`, 'err'));
-      tPrint(`${tc('ics')} to add them to your calendar`, 'dim');
+      if (SCHEDULED) tPrint(`${tc('ics')} to add them to your calendar`, 'dim');
     } },
     ics: { a: '', d: 'download your plan as a calendar', run() {
+      if (!SCHEDULED) { tPrint('calendar export opens when the schedule is announced', 'dim'); return; }
       if (!picks.size) { tPrint(`pick something first: ${tc('pick hackathon')}`, 'dim'); return; }
       saveIcs().then((r) => tPrint(r === 'saved' ? `saved yugantra-${T(site.edition)}.ics · ${SLOTS.filter((x) => x.id && picks.has(x.id)).length} sessions` : r === 'blocked' ? 'calendar export works on the live site, not in this preview' : 'not saved', r === 'saved' ? '' : 'dim'));
     } },
-    play: { a: '', d: 'hear the whole fest as music', run() { closeTerm(); setTimeout(() => { $('#schedule').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' }); FestSound.start(); }, 80); } },
+    play: { a: '', d: 'hear the whole fest as music', run() { if (!SCHEDULED) { tPrint('the fest plays as music once the schedule is announced', 'dim'); return; } closeTerm(); setTimeout(() => { $('#schedule').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' }); FestSound.start(); }, 80); } },
     sound: { a: 'on|off', d: 'interface sounds', run(q) { setSound(!/off|0|no/i.test(q || '') && (q ? true : !Sound.on)); tPrint(`sound ${Sound.on ? 'on' : 'off'}`); } },
     night: { a: 'on|off|auto', d: 'the site\'s night palette', run(q) {
       const v = (q || '').toLowerCase();
@@ -1778,7 +1654,7 @@
       if (site.registerUrl) tPrint(`<a href="${T(site.registerUrl)}" target="_blank" rel="noopener">${T(site.registerUrl)}</a>`);
       else tPrint(`registration opens ${T(site.registrationOpens)}. fees are paid at registration: ${tc('fees')}`);
     } },
-    contact: { a: '', d: 'how to reach the team', run() { tPrint(`${tk(site.email)} · or ${tc('go contact')}`); } },
+    contact: { a: '', d: 'how to reach the team', run() { if (HAS_EMAIL) tPrint(`${tk(site.email)} · or ${tc('go contact')}`); else tPrint('contact details: to be announced', 'dim'); } },
     clear: { a: '', d: 'clear the screen', run() { tOut.innerHTML = ''; } },
     exit: { a: '', d: 'close the terminal', run() { closeTerm(); } }
   };
@@ -1816,7 +1692,7 @@
     if (!term.showModal || term.open) return;
     if (!tOut.childElementCount) {
       tPrint(`<span class="tbig">YUGANTRA ${T(site.edition)}</span> · where tech defines the <span lang="ml" class="tml">യുഗം</span>`);
-      tPrint(`${D.events.length} events · ${D.ages.length} tracks · ${days} days · ${rupees(confirmedPool)} confirmed prizes`, 'dim');
+      tPrint(`${D.events.length} events · ${D.ages.length} tracks · ${festDays ? `${festDays} days` : 'dates TBA'} · ${rupees(confirmedPool)} confirmed prizes`, 'dim');
       tPrint(`type ${tc('help')}, or try ${tc('events code')} ${tc('open hackathon')} ${tc('next')} ${tc('schedule 2')}`);
     }
     if (menuOpen) setMenu(false);
@@ -2075,8 +1951,8 @@
     const partnerSlots = D.partners.reduce((a, t) => a + t.slots, 0);
     const spec = {
       spotlight: hk && hk.hours % 2 === 0 ? [hk.hours / 2, 2, `${hk.hours} points, one for each hour of the ${hk.name}`] : [7, 2, `${D.events.length} points, one for each event`],
-      schedule: slotCount % days === 0 ? [slotCount / days, days, `${slotCount} points, one for each session, in ${days} rows for ${days} days`] : [6, days, `${days} rows, one for each day`],
-      partners: [partnerSlots, 1, `${partnerSlots} points, one for each partner slot`],
+      schedule: !SCHEDULED ? null : slotCount % days === 0 ? [slotCount / days, days, `${slotCount} points, one for each session, in ${days} rows for ${days} days`] : [6, days, `${days} rows, one for each day`],
+      partners: partnerSlots ? [partnerSlots, 1, `${partnerSlots} points, one for each partner slot`] : null,
       reach: D.events.length % 2 === 0 ? [D.events.length / 2, 2, `${D.events.length} points, one for each event`] : [D.events.length, 1, `${D.events.length} points, one for each event`]
     };
     const io = new IntersectionObserver((en) => en.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('drawn'); io.unobserve(e.target); } }), { threshold: 0.5 });
@@ -2084,12 +1960,13 @@
       const sp = spec[fig.dataset.kolam];
       if (!sp) { fig.remove(); return; }
       const k = kolamSVG(sp[0], sp[1], `yugantra-${fig.dataset.kolam}`);
-      fig.innerHTML = `${k.svg}<figcaption>Kolam · ${esc(sp[2])}${k.single ? ' · one unbroken line' : ''}</figcaption>`;
+      fig.innerHTML = k.svg;
+      fig.title = `Kolam · ${sp[2]}${k.single ? ' · one unbroken line' : ''}`;
       if (reduced) fig.classList.add('drawn'); else io.observe(fig);
     });
   }
 
-  /* Malayalam numerals: every section, the rail and the watermarks are numbered ൧ to ൧൦. */
+  /* Malayalam numerals: every section and the rail are numbered ൧ to ൧൦. */
   function initNumerals() {
     const order = ['origin', 'ages', 'events', 'spotlight', 'passes', 'schedule', 'stage', 'partners', 'faq', 'reach'];
     order.forEach((id, i) => {
@@ -2097,8 +1974,6 @@
       if (!sec) return;
       const eb = sec.querySelector('.eyebrow');
       if (eb && !eb.querySelector('.sec-no')) eb.insertAdjacentHTML('afterbegin', `<span class="sec-no" lang="ml" aria-hidden="true">${ML(i + 1)}</span>`);
-      const mk = $(':scope > .sec-mark', sec);
-      if (mk && !mk.querySelector('.smn')) mk.innerHTML = `<span class="smn" lang="ml">${ML(i + 1)}</span>${esc(mk.textContent)}`;
     });
     $$('#rail a').forEach((a) => {
       const sp = a.querySelector('span');
@@ -2108,7 +1983,7 @@
     if (ke) ke.insertAdjacentHTML('afterend', ` <span class="ml-num" lang="ml">(${ML(site.kollamEra)})</span>`);
   }
 
-  /* cards you can pick up: goodies and the pass tilt toward the pointer */
+  /* event cards tilt toward the pointer */
   let tiltEl = null;
   const resetTilt = (el) => { el.classList.remove('tilting'); ['--rx', '--ry', '--px', '--py'].forEach((p) => el.style.removeProperty(p)); };
   document.addEventListener('pointermove', (e) => {
@@ -2259,18 +2134,6 @@
   }, { rootMargin: '-45% 0px -50% 0px' });
   railLinks.forEach((a) => { const el = document.getElementById(a.dataset.sec); if (el) sectionIO.observe(el); else a.remove(); });
 
-  /* section names drift behind the content, slower than the page */
-  const marks = $$('.sec-mark').map((el) => ({ el, host: el.parentElement }));
-  function updateMarks() {
-    if (reduced) return;
-    for (const m of marks) {
-      const r = m.rect;
-      if (!r || r.bottom < 0 || r.top > H) continue;
-      const t = (r.top + r.height / 2 - H / 2) / (H + r.height);
-      m.el.style.transform = `translate3d(${(t * -180).toFixed(1)}px, ${(t * 240).toFixed(1)}px, 0)`;
-    }
-  }
-
   function initReveal() {
     const vh = innerHeight;
     const io = new IntersectionObserver((entries) => {
@@ -2310,14 +2173,14 @@
       ringAncient: [
         { text: `YUGANTRA ${site.edition}` }, { sep: true },
         { text: 'WHERE TECH DEFINES THE' }, { text: 'യുഗം', ml: true }, { sep: true },
-        { text: site.dateLabel.toUpperCase() }, { sep: true },
+        { text: DATE_TEXT.toUpperCase() }, { sep: true },
         { text: 'KOLLAM ERA' }, { text: ml(site.kollamEra), ml: true }, { sep: true },
         { text: `${D.events.length} EVENTS · ${trackCount} TRACKS` }, { sep: true },
         { text: `${lakhText(confirmedPool)} LAKH+ IN PRIZES` }, { sep: true }
       ],
       ringFuture: [
         { text: bits }, { sep: true },
-        { text: `${site.startsAt.slice(0, 16)}+05:30/P${days}D` }, { sep: true },
+        { text: DATES_SET ? `${site.startsAt.slice(0, 16)}+05:30/P${festDays}D` : 'dates=TBA' }, { sep: true },
         { text: `events=${D.events.length}` }, { sep: true },
         { text: `prize_pool>=${confirmedPool}` }, { sep: true }
       ]
@@ -2368,7 +2231,7 @@
     lastW = W = innerWidth; H = innerHeight;
     setQuality(quality);
     syncFuture();
-    if (widthChanged) { buildMarquee(); fitBigmark(); }
+    if (widthChanged) fitBigmark();
     if (dial && texReady && neededTexture() > dial.textureSize) {
       clearTimeout(texTimer);
       texTimer = setTimeout(() => { try { dial.paint(neededTexture(), dialData()); } catch (_) { /* keep current */ } }, 500);
@@ -2391,7 +2254,7 @@
       try { dial.paint(neededTexture(), dialData()); texReady = true; } catch (err) { console.warn('[yugantra] texture paint failed:', err); }
     });
   }
-  fontsReady.then(() => { syncFuture(); buildMarquee(); fitBigmark(); });
+  fontsReady.then(() => { syncFuture(); fitBigmark(); });
 
   const EMERALD = [0.086, 0.188, 0.169], BURGUNDY = [0.224, 0.02, 0.09], BRONZE = [0.373, 0.318, 0.239];
   const AGE_TINT = [EMERALD, [0.2, 0.19, 0.15], [0.12, 0.2, 0.16], BURGUNDY, BRONZE];
@@ -2403,10 +2266,10 @@
     const portrait = w < h * 0.9;
     switch (id) {
       case 'top': return portrait ? { x: w * 0.5, y: h * 0.27, r: Math.min(w * 0.6, h * 0.3), o: 1, t: EMERALD } : { x: w * 0.71, y: h * 0.5, r: h * 0.62, o: 1, t: EMERALD };
-      case 'spotlight': return portrait ? { x: w * 0.5, y: h * 0.1, r: w * 0.8, o: 0.08, t: EMERALD } : { x: w * 0.02, y: h * 0.5, r: h * 0.62, o: 0.16, t: EMERALD };
-      case 'passes': return portrait ? { x: w * 0.5, y: h * 0.9, r: w * 0.8, o: 0.08, t: BRONZE } : { x: w * 0.96, y: h * 0.72, r: h * 0.56, o: 0.14, t: BRONZE };
-      case 'reach': return { x: w * 0.5, y: h * 1.02, r: Math.min(w, h) * 0.55, o: 0.3, t: BRONZE };
-      case 'origin': return portrait ? { x: w * 0.5, y: h * 0.5, r: h * 0.55, o: 0.12, t: EMERALD } : { x: w * 0.9, y: h * 0.5, r: h * 0.62, o: 0.2, t: EMERALD };
+      case 'spotlight': return portrait ? { x: w * 0.5, y: h * 0.1, r: w * 0.8, o: 0.05, t: EMERALD } : { x: w * 0.02, y: h * 0.5, r: h * 0.62, o: 0.08, t: EMERALD };
+      case 'passes': return portrait ? { x: w * 0.5, y: h * 0.9, r: w * 0.8, o: 0.05, t: BRONZE } : { x: w * 0.96, y: h * 0.72, r: h * 0.56, o: 0.07, t: BRONZE };
+      case 'reach': return { x: w * 0.5, y: h * 1.02, r: Math.min(w, h) * 0.55, o: 0.16, t: BRONZE };
+      case 'origin': return portrait ? { x: w * 0.5, y: h * 0.5, r: h * 0.55, o: 0.06, t: EMERALD } : { x: w * 0.92, y: h * 0.5, r: h * 0.62, o: 0.09, t: EMERALD };
       case 'ages': {
         const tint = AGE_TINT[agesState.stage] || EMERALD;
         if (portrait) {
@@ -2425,11 +2288,11 @@
       }
       case 'schedule': {
         const lit = FestSound.playing ? 3.2 : 1;
-        return portrait ? { x: w * 0.5, y: h * 0.2, r: w * 0.7, o: 0.1 * lit, t: EMERALD } : { x: w * 0.04, y: h * 0.55, r: h * 0.7, o: 0.14 * lit, t: EMERALD };
+        return portrait ? { x: w * 0.5, y: h * 0.2, r: w * 0.7, o: 0.05 * lit * 1.6, t: EMERALD } : { x: w * 0.04, y: h * 0.55, r: h * 0.7, o: 0.07 * lit * 1.6, t: EMERALD };
       }
-      case 'stage': return { x: w * 0.5, y: h * 0.55, r: Math.min(w, h) * 0.5, o: 0.22, t: BURGUNDY };
-      case 'partners': return { x: w * 0.92, y: h * 0.3, r: h * 0.55, o: 0.14, t: EMERALD };
-      case 'faq': return { x: w * 0.1, y: h * 0.62, r: h * 0.48, o: 0.12, t: EMERALD };
+      case 'stage': return { x: w * 0.5, y: h * 0.55, r: Math.min(w, h) * 0.5, o: 0.14, t: BURGUNDY };
+      case 'partners': return { x: w * 0.92, y: h * 0.3, r: h * 0.55, o: 0.07, t: EMERALD };
+      case 'faq': return { x: w * 0.1, y: h * 0.62, r: h * 0.48, o: 0.06, t: EMERALD };
       default: return { x: w * 0.5, y: h * 1.02, r: Math.min(w, h) * 0.6, o: 0.4, t: BRONZE };
     }
   }
@@ -2462,14 +2325,15 @@
       cap.innerHTML = `${figSVG(i)}<span><b>${esc(a.domain)}</b> · ${eventsOf(a.id).length} events</span>`;
     } else {
       const ev = DIAL_EVENTS[i], a = AGE[ev.era];
-      const lead = kind === 'held' ? (held.live ? 'Live now' : 'Next up') : a.domain;
+      const lead = kind === 'held' ? (held.tba ? 'Flagship' : held.live ? 'Live now' : 'Next up') : a.domain;
       cap.innerHTML = `${figSVG(a.index)}<span>${esc(lead)} · <b>${esc(ev.name)}</b> · ${esc(whenLabel(ev))}</span>`;
     }
   }
   let lastHeldText = '';
   function updateHeldText() {
     const ev = DIAL_EVENTS[held.i];
-    const txt = `${held.live ? 'Live now' : 'Next up'}: ${ev.name} · ${fmtWhen(DIAL_TIMES[held.i].start)}${site.scheduleIsProvisional ? ' (provisional)' : ''}`;
+    const txt = held.tba ? `Flagship: ${ev.name}${ev.time ? `, from ${clock12(ev.time)}` : ''}`
+      : `${held.live ? 'Live now' : 'Next up'}: ${ev.name} · ${fmtWhen(DIAL_TIMES[held.i].start)}${PROV ? ' (provisional)' : ''}`;
     if (txt !== lastHeldText) { lastHeldText = txt; $('#nextUp').textContent = txt; }
   }
 
@@ -2548,7 +2412,7 @@
     if (next < 0) { if (!tip.hidden) tip.hidden = true; tipFor = -1; return; }
     if (tipFor !== next) {
       const ev = DIAL_EVENTS[next], a = AGE[ev.era];
-      tip.innerHTML = `<span class="tt-k">${figSVG(a.index)}${esc(a.domain)}</span><b>${esc(ev.name)}</b><span>${esc(ev.format)} · ${esc(whenLabel(ev))}</span><span class="tt-v">${ev.prize ? `${rupees(ev.prize)} prize pool` : esc(ev.fee === 'TBA' ? 'Details TBA' : ev.fee)} · click to open</span>`;
+      tip.innerHTML = `<span class="tt-k">${figSVG(a.index)}${esc(a.domain)}</span><b>${esc(ev.name)}</b><span>${esc(ev.format)} · ${esc(whenOrLength(ev))}</span><span class="tt-v">${ev.prize ? `${rupees(ev.prize)} prize pool` : esc(ev.fee === 'TBA' ? 'Details TBA' : ev.fee)} · click to open</span>`;
       tipFor = next;
     }
     tip.hidden = false;
@@ -2557,7 +2421,7 @@
     tip.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
   }
 
-  /* device tilt (phones) moves the light and the lens */
+  /* device tilt (phones) moves the light */
   const tilt = { x: 0, y: 0, on: false };
   addEventListener('deviceorientation', (e) => {
     if (e.gamma == null) return;
@@ -2577,14 +2441,8 @@
     let target = 0;
     if (visible) {
       if (fine && pointer.inHero) { lens.tx = pointer.x; lens.ty = pointer.y; target = base; }
-      else if (!fine && !reduced) {
-        if (clock - pointer.lastTouch > 2.6) {
-          const wr = M.wm || wm.getBoundingClientRect();
-          lens.tx = wr.left + wr.width * (0.5 + 0.4 * Math.sin(clock * 0.42) + (tilt.on ? tilt.x * 0.3 : 0));
-          lens.ty = wr.top + wr.height * (0.55 + 0.35 * Math.sin(clock * 0.83) + (tilt.on ? tilt.y * 0.4 : 0));
-        }
-        target = base;
-      }
+      // touch: the lens is where the finger is, and fades a moment after it lifts (never parked over the wordmark)
+      else if (!fine && clock - pointer.lastTouch < 2.6) target = base;
     }
     if (lens.r < 0.5 && target > 0) { lens.x = lens.tx; lens.y = lens.ty; }
     lens.x = damp(lens.x, lens.tx, 16, dt);
@@ -2662,35 +2520,19 @@
     const m = /^#ev-([\w-]+)$/.exec(location.hash);
     if (m && EVENTS[m[1]]) setTimeout(() => openEvent(m[1]), 400);
   }
-  const BOOT_LINES = [
-    '> yugantra --boot ' + site.edition,
-    `tracks ........ ${trackCount} + ${D.ages.length - trackCount} showcase`,
-    `events ........ ${D.events.length}`,
-    `schedule ...... ${days} days · ${slotCount} slots`,
-    `prizes ........ ₹${lakhText(confirmedPool)} lakh+ confirmed`,
-    `identity ...... YUGANTRA ${site.edition}`,
-    'ready · where tech defines the യുഗം'
-  ];
   function runIntro() {
     const el = $('#intro');
     const skip = reduced || navigator.webdriver || !el || !dial;
     if (skip) { el && el.remove(); bootV = 1; onReady(); return; }
     root.classList.add('booting');
-    const log = $('#bootLog'), num = $('#introNum'), lab = $('#introLabel');
+    const num = $('#introNum'), lab = $('#introLabel');
     let shown = 0, done = false, t0 = 0, lastBand = -1;
-    const showLines = (n) => {
-      if (n <= shown) return;
-      shown = n;
-      log.textContent = BOOT_LINES.slice(0, n).join('\n');
-    };
-    showLines(1);
     const finish = () => {
       if (done) return;
       done = true;
       bootV = 1;
-      showLines(BOOT_LINES.length);
       num.textContent = site.edition;
-      lab.textContent = `${site.name} · ${site.kind.toLowerCase()} · ${site.dateLabel}`;
+      lab.textContent = `${site.name} · ${site.kind.toLowerCase()} · ${DATE_TEXT}`;
       el.classList.add('flip');
       setTimeout(() => {
         el.classList.add('out');
@@ -2709,7 +2551,6 @@
       num.textContent = inr.format(Math.round(MAHAYUGA * Math.pow(1 - k, 2)));
       const band = Math.floor(k * 6.6 - 1);
       if (band !== lastBand && band >= 0) { lastBand = band; Sound.tick(1000 + band * 180, 0.05, 0.05); }
-      showLines(1 + clamp(band + 1, 0, 5));
       if (k < 1) requestAnimationFrame(frame); else finish();
     };
     requestAnimationFrame(frame);
@@ -2724,18 +2565,16 @@
   const veil = $('#veil');
   /* Every layout read for a frame happens here, before any write, so the page
      never forces a second layout mid-frame. */
-  const M = { hero: null, heroMain: null, slot: null, ages: null, big: null, wm: null, docH: 1, agesGap: null };
+  const M = { hero: null, heroMain: null, slot: null, ages: null, big: null, docH: 1, agesGap: null };
   const agesTopEl = $('.ages-top', agesEl);
   function measure() {
     M.docH = root.scrollHeight - H;
     for (const s of SECTIONS) s.rect = s.el ? s.el.getBoundingClientRect() : null;
-    for (const m of marks) m.rect = m.host.getBoundingClientRect();
     M.hero = hero.getBoundingClientRect();
     M.heroMain = heroMain.getBoundingClientRect();
     M.slot = dialSlot.getBoundingClientRect();
     M.ages = agesEl.getBoundingClientRect();
     M.big = bigmark.getBoundingClientRect();
-    M.wm = !fine && M.hero.bottom > 0 ? wm.getBoundingClientRect() : null;
     M.agesGap = null;
     if (W < H * 0.9 && M.ages.bottom > 0 && M.ages.top < H && agesNodes) {
       const st = agesNodes.stages[Math.max(0, agesStage)];
@@ -2777,16 +2616,8 @@
     tickReadouts(dt * 1000);
     updateSpot(M.big);
     updateClock();
-    updateMarks();
     FestSound.frame();
 
-    if (mq.wa && !reduced) {
-      const sp = 46 + Math.min(1600, Math.abs(vel)) * 0.35;
-      mq.xa = (((mq.xa + dir * sp * dt) % mq.wa) + mq.wa) % mq.wa;
-      mq.xb = (((mq.xb - dir * sp * 0.6 * dt) % mq.wb) + mq.wb) % mq.wb;
-      mq.a.style.transform = `translate3d(${-mq.xa.toFixed(1)}px,0,0)`;
-      mq.b.style.transform = `translate3d(${-mq.xb.toFixed(1)}px,0,0)`;
-    }
     if (M.hero.bottom > 0) {
       const sh = clamp(pointer.x / W, 0, 1).toFixed(3);
       if (sh !== wlast.sheen) { wlast.sheen = sh; wm.style.setProperty('--sheen', sh); }
@@ -2838,8 +2669,8 @@
       if (agesState.active && TRACK_RANGE[agesState.stage]) {
         [fa, fb] = TRACK_RANGE[agesState.stage]; figure = agesState.stage; capKind = 'track'; capI = agesState.stage;
       } else {
-        // the flagship and the pass preview hold their own event while in view
-        const own = (cover.spotlight || 0) > 0.5 ? 'hackathon' : (cover.passes || 0) > 0.5 ? passFor : null;
+        // the flagship holds its own event while in view
+        const own = (cover.spotlight || 0) > 0.5 ? 'hackathon' : null;
         if (own && DIAL_INDEX[own] != null) { fa = fb = DIAL_INDEX[own]; figure = AGE[EVENTS[own].era].index; capKind = 'ev'; capI = fa; }
       }
       if (pageFocus) {
@@ -2920,6 +2751,7 @@
         }
       }
     } else {
+      if (wall - heldAt > 1000) { held = heldEvent(wall); heldAt = wall; updateHeldText(); }
       updateLens(dt);
     }
     updateCursor(dt);
